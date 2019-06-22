@@ -248,8 +248,8 @@ def minimize_test():
                                           (None, None),
                                           (None, None)],
                                   callback=callback)
-    #print(res.x)
-    #print(target_function(res.x, []))
+    print(res.success)
+    print(res.message.decode('utf-8', errors='replace'))
     (b1, b2) = state_to_beziers(res.x)
     draw_result('fontout.svg', b1, b2)
 
