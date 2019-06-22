@@ -18,9 +18,45 @@
 # 02111-1307, USA.
 
 import xml.etree.ElementTree as ET#
+import math
+import scipy.optimize
+
+class Point:
+    def __init__(self, x, y):
+        self.x = x
+        self.y = y
+
+    def distance(self, p):
+        return math.sqrt(math.pow(p.x-self.x, 2) + math.pow(p.y-self.y, 2))
+
+class Bezier:
+    def __init__(self, p1, c1, c2, p2):
+        self.p1 = p1
+        self.c1 = c1
+        self.c2 = c2
+        self.p2 = p2
+
+    def evaluate(self, t):
+        x = math.pow(1.0-t, 3)*self.p1.x + 3.0*math.pow(1.0-t, 2)*t*self.c1.x + 3.0*(1.0-t)*t*t*self.c2.x + math.pow(t, 3)*self.p2.x
+        y = math.pow(1.0-t, 3)*self.p1.y + 3.0*math.pow(1.0-t, 2)*t*self.c1.y + 3.0*(1.0-t)*t*t*self.c2.y + math.pow(t, 3)*self.p2.y
+        return Point(x, y)
+
+    def distance(self, p):
+        i = 0.0
+        delta = 0.1
+        mindist = 1000000000
+        cutoff = (1.0 + delta/2)
+        while i<=cutoff:
+            curpoint = self.evaluate(i)
+            curdist = p.distance(curpoint)
+            i += delta
+            if curdist < mindist:
+                mindist = curdist
+                minpoint = curpoint
+        return mindist
 
 class SvgWriter:
-    
+
     def __init__(self, fname):
         self.canvas_w = 1200
         self.canvas_h = 1400
@@ -145,7 +181,38 @@ class SvgWriter:
         ET.ElementTree(self.root).write(self.fname)
         self.prettyprint_xml(self.fname)
 
+def target_function(x, state):
+    a = x[0]
+    t1 = Point(0.1, 0.2)
+    t2 = Point(0.9, 0.25)
+    p1 = Point(0.0, 0.0)
+    p2 = Point(0.5, 0.4)
+    p3 = Point(1.0, 0.0)
+    c1 = Point(x[1], x[2])
+    c2 = Point(p2.x - a, 0.4)
+    c3 = Point(p2.x + a, 0.4)
+    c4 = Point(x[3], x[4])
+    
+    b1 = Bezier(p1, c1, c2, p2)
+    b2 = Bezier(p2, c3, c4, p3)
+    
+    return b1.distance(t1) + b2.distance(t2)
+
+def minimize_test():
+    stateobj = []
+    res = scipy.optimize.minimize(target_function,
+                                  [0.1, 0.1, 0.1, 0.9, 0.0],
+                                  stateobj,
+                                  bounds=[(0.01, None),
+                                          (None, None),
+                                          (None, None),
+                                          (None, None),
+                                          (None, None)])
+    print(res.x)
+    print(target_function(res.x, []))
+
 if __name__ == '__main__':
+    minimize_test()
     sw = SvgWriter('testfile.svg')
     sw.setup_canvas()
     sw.draw_splines()
