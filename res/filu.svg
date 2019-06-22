@@ -1,0 +1,79 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200px" height="1400px">
+  <rect width="1200px" height="1400px" fill="white"/>
+  <g transform="translate(100, 1100)">
+    <g transform="matrix(1, 0, 0, -1, 0, 0)">
+      <g transform="scale(1000)">
+        <line x1="-20" y1="0" x2="20" y2="0" stroke="black" stroke-width="0.002"/>
+        <line x1="0" y1="-20" x2="0" y2="20" stroke="black" stroke-width="0.002"/>
+        <line x1="-20" y1="1" x2="20" y2="1" stroke="black" stroke-width="0.002"/>
+        <line x1="1" y1="-20" x2="1" y2="20" stroke="black" stroke-width="0.002"/>
+        <!-- vertical width line -->
+        <line x1="0.7" y1="-20" x2="0.7" y2="20" stroke="black" stroke-width="0.001"/>
+        <g transform="translate(1.01, 1.01)">
+          <g transform="matrix(1, 0, 0, -1, 0, 0)">
+            <text x="0" y="0" font-size="0.02" fill="black">
+            (1, 1)</text>
+          </g>
+        </g>
+        <g transform="translate(0.71, 1.01)">
+          <g transform="matrix(1, 0, 0, -1, 0, 0)">
+            <text x="0" y="0" font-size="0.02" fill="black">
+            (w, 1)</text>
+          </g>
+        </g>
+        <line x1="-20" y1="0.6" x2="20" y2="0.6" stroke="black" stroke-width="0.002" stroke-dasharray="0.01,0.01"/>
+        <g transform="translate(0.82, 0.602)">
+          <g transform="matrix(1, 0, 0, -1, 0, 0)">
+            <text x="0" y="0" font-size="0.02" fill="black">
+            X-height</text>
+          </g>
+        </g>
+        <line x1="-20" y1="0.62" x2="20" y2="0.62" stroke="black" stroke-width="0.002" stroke-dasharray="0.01,0.01"/>
+        <g transform="translate(0.82, 0.622)">
+          <g transform="matrix(1, 0, 0, -1, 0, 0)">
+            <text x="0" y="0" font-size="0.02" fill="black">
+            X-overshoot</text>
+          </g>
+        </g>
+        <line x1="-20" y1="0.92" x2="20" y2="0.92" stroke="black" stroke-width="0.002" stroke-dasharray="0.01,0.01"/>
+        <g transform="translate(0.82, 0.922)">
+          <g transform="matrix(1, 0, 0, -1, 0, 0)">
+            <text x="0" y="0" font-size="0.02" fill="black">
+            Cap overshoot</text>
+          </g>
+        </g>
+        <line x1="-20" y1="-0.01" x2="20" y2="-0.02" stroke="black" stroke-width="0.002" stroke-dasharray="0.01,0.01"/>
+        <g transform="translate(0.82, -0.035)">
+          <g transform="matrix(1, 0, 0, -1, 0, 0)">
+            <text x="0" y="0" font-size="0.02" fill="black">
+            Undershoot</text>
+          </g>
+        </g>
+        <line x1="-20" y1="0.9" x2="20" y2="0.9" stroke="black" stroke-width="0.002" stroke-dasharray="0.01,0.01"/>
+        <g transform="translate(0.82, 0.902)">
+          <g transform="matrix(1, 0, 0, -1, 0, 0)">
+            <text x="0" y="0" font-size="0.02" fill="black">
+            Cap height</text>
+          </g>
+        </g>
+        <line x1="-20" y1="-0.2" x2="20" y2="-0.2" stroke="black" stroke-width="0.002" stroke-dasharray="0.01,0.01"/>
+        <g transform="translate(0.82, -0.22)">
+          <g transform="matrix(1, 0, 0, -1, 0, 0)">
+            <text x="0" y="0" font-size="0.02" fill="black">
+            Descender height</text>
+          </g>
+        </g>
+        <!-- Splines -->
+        <path d="M0 0 C 0.2 0.8  0.9 -0.2 1 0" stroke-width="0.002" stroke="black" fill="none"/>
+        <path d="M0 0 L 0.2 0.8" stroke-width="0.001" stroke="black" stroke-dasharray="0.01,0.01"/>
+        <path d="M 0.19 0.79 L 0.21 0.81 M 0.19 0.81 L 0.21 0.79" stroke-width="0.002" stroke="black"/>
+        <circle cx="0" cy="0" r="0.01" />
+        <circle cx="1" cy="0" r="0.01" />
+        <path d="M1 0 L 0.9 -0.2" stroke-width="0.001" stroke="black" stroke-dasharray="0.01,0.01"/>
+        <path d="M 0.89 -0.19 L 0.91 -0.21 M 0.89 -0.21 L 0.91 -0.19" stroke-width="0.002" stroke="black"/>
+      </g>
+    </g>
+    <text x="-60" y="30" font-size="20" fill="black">
+    (0, 0)</text>
+  </g>
+</svg>
