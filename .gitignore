@@ -5,3 +5,6 @@
 .cproject
 .pydevproject
 testfile.svg
+anim*.svg
+fontout.svg
+

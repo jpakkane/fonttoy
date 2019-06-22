@@ -230,23 +230,31 @@ def target_function(x, state):
 
     return b1.distance(t1) + b2.distance(t2)
 
+iter_count = 0
+
+def callback(x):
+    global iter_count
+    (b1, b2) = state_to_beziers(x)
+    draw_result('anim{}.svg'.format(iter_count), b1, b2)
+    iter_count += 1
+
 def minimize_test():
-    stateobj = []
     res = scipy.optimize.minimize(target_function,
                                   [0.1, 0.1, 0.1, 0.9, 0.0],
-                                  stateobj,
+                                  None,
                                   bounds=[(0.01, None),
                                           (None, None),
                                           (None, None),
                                           (None, None),
-                                          (None, None)])
+                                          (None, None)],
+                                  callback=callback)
     #print(res.x)
     #print(target_function(res.x, []))
     (b1, b2) = state_to_beziers(res.x)
-    draw_result(b1, b2)
+    draw_result('fontout.svg', b1, b2)
 
-def draw_result(b1, b2):
-    sw = SvgWriter('fontout.svg')
+def draw_result(fname, b1, b2):
+    sw = SvgWriter(fname)
     sw.setup_canvas()
     sw.draw_cubicbezier(b1)
     sw.draw_cubicbezier(b2)
