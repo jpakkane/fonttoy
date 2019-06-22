@@ -105,6 +105,35 @@ class SvgWriter:
     def draw_splines(self):
         self.cubic_bezier(0.0, 0.0, 0.2, 0.8, 0.9, -0.2, 1.0, 0.0)
 
+    def draw_cubicbezier(self, b):
+        self.cubic_bezier(b.p1.x,
+                          b.p1.y,
+                          b.c1.x,
+                          b.c1.y,
+                          b.c2.x,
+                          b.c2.y,
+                          b.p2.x,
+                          b.p2.y)
+
+    def draw_box_marker(self, x, y):
+        boxwidth = 0.02
+        ET.SubElement(self.canvas, 'rect', {'x': str(x-boxwidth/2),
+                                          'y': str(y-boxwidth/2),
+                                          'width': str(boxwidth),
+                                          'height': str(boxwidth),
+                                          'fill': 'transparent',
+                                          'stroke': 'black',
+                                          'stroke-width': '0.002',})
+
+    def draw_circle_marker(self, x, y):
+        radius = 0.01
+        ET.SubElement(self.canvas, 'circle', {'cx': str(x),
+                                            'cy': str(y),
+                                            'r': str(radius),
+                                            'fill': 'transparent',
+                                            'stroke': 'black',
+                                            'stroke-width': '0.002',})
+
     def cubic_bezier(self, x1, y1, c1x, c1y, c2x, c2y, x2, y2):
         spline_style = {'stroke-width': '0.002',
                         'stroke': 'black',
@@ -181,10 +210,8 @@ class SvgWriter:
         ET.ElementTree(self.root).write(self.fname)
         self.prettyprint_xml(self.fname)
 
-def target_function(x, state):
+def state_to_beziers(x):
     a = x[0]
-    t1 = Point(0.1, 0.2)
-    t2 = Point(0.9, 0.25)
     p1 = Point(0.0, 0.0)
     p2 = Point(0.5, 0.4)
     p3 = Point(1.0, 0.0)
@@ -192,10 +219,15 @@ def target_function(x, state):
     c2 = Point(p2.x - a, 0.4)
     c3 = Point(p2.x + a, 0.4)
     c4 = Point(x[3], x[4])
-    
     b1 = Bezier(p1, c1, c2, p2)
     b2 = Bezier(p2, c3, c4, p3)
-    
+    return (b1, b2)
+
+def target_function(x, state):
+    (b1, b2) = state_to_beziers(x)
+    t1 = Point(0.1, 0.2)
+    t2 = Point(0.9, 0.25)
+
     return b1.distance(t1) + b2.distance(t2)
 
 def minimize_test():
@@ -208,8 +240,25 @@ def minimize_test():
                                           (None, None),
                                           (None, None),
                                           (None, None)])
-    print(res.x)
-    print(target_function(res.x, []))
+    #print(res.x)
+    #print(target_function(res.x, []))
+    (b1, b2) = state_to_beziers(res.x)
+    draw_result(b1, b2)
+
+def draw_result(b1, b2):
+    sw = SvgWriter('fontout.svg')
+    sw.setup_canvas()
+    sw.draw_cubicbezier(b1)
+    sw.draw_cubicbezier(b2)
+    # HAXXXXX
+    t1 = Point(0.1, 0.2)
+    t2 = Point(0.9, 0.25)
+    sw.draw_circle_marker(t1.x, t1.y)
+    sw.draw_circle_marker(t2.x, t2.y)
+    sw.draw_box_marker(b1.p1.x, b1.p1.y)
+    sw.draw_box_marker(b1.p2.x, b1.p2.y)
+    sw.draw_box_marker(b2.p2.x, b2.p2.y)
+    sw.write()
 
 if __name__ == '__main__':
     minimize_test()
