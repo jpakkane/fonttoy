@@ -23,11 +23,17 @@ import scipy.optimize
 
 class Point:
     def __init__(self, x, y):
-        self.x = x
-        self.y = y
+        self.x = float(x)
+        self.y = float(y)
 
     def distance(self, p):
         return math.sqrt(math.pow(p.x-self.x, 2) + math.pow(p.y-self.y, 2))
+
+    def normalize(self, p):
+        if math.fabs(p.x) < 0.0001 and math.fabs(p.y) < 0.0001:
+            return Point(0.0, 0.0)
+        d = self.distance(Point(0, 0))
+        return Point(self.x/distance, self.y/distance)
 
 class Bezier:
     def __init__(self, p1, c1, c2, p2):
@@ -69,19 +75,26 @@ class Bezier:
             i += delta
         return total_energy
 
-    def distance(self, p):
-        i = 0.0
+    def closest_t(self, p):
+        t = 0.0
         delta = 0.1
         mindist = 1000000000
+        min_t = 0.0
         cutoff = (1.0 + delta/2)
-        while i<=cutoff:
-            curpoint = self.evaluate(i)
+        while t<=cutoff:
+            curpoint = self.evaluate(t)
             curdist = p.distance(curpoint)
-            i += delta
             if curdist < mindist:
                 mindist = curdist
-                minpoint = curpoint
-        return mindist
+                min_t = t
+            t += delta
+        return min_t
+
+    def distance(self, p):
+        t = self.closest_t(p)
+        closest_point = self.evaluate(t)
+        closest_distance = closest_point.distance(p)
+        return closest_distance
 
 class SvgWriter:
 
@@ -153,14 +166,26 @@ class SvgWriter:
                                           'stroke': 'black',
                                           'stroke-width': '0.002',})
 
+    def draw_constraint_circle(self, p, r):
+        constraint_circle_style = {'stroke-width': '0.001',
+                                   'stroke': 'black',
+                                   'fill': 'transparent',
+                                   'stroke-dasharray': '0.005,0.005'}
+        d = {'cx': str(p.x),
+             'cy': str(p.y),
+             'r': str(r)}
+        d.update(constraint_circle_style)
+        ET.SubElement(self.canvas, 'circle', **d)
+
+
     def draw_circle_marker(self, x, y):
         radius = 0.01
         ET.SubElement(self.canvas, 'circle', {'cx': str(x),
-                                            'cy': str(y),
-                                            'r': str(radius),
-                                            'fill': 'transparent',
-                                            'stroke': 'black',
-                                            'stroke-width': '0.002',})
+                                              'cy': str(y),
+                                              'r': str(radius),
+                                              'fill': 'transparent',
+                                              'stroke': 'black',
+                                              'stroke-width': '0.002',})
 
     def cubic_bezier(self, x1, y1, c1x, c1y, c2x, c2y, x2, y2):
         spline_style = {'stroke-width': '0.002',
@@ -266,7 +291,8 @@ def callback(x):
     draw_result('anim{}.svg'.format(iter_count), b1, b2)
     iter_count += 1
 
-def minimize_test():
+def basic_minimize_test():
+    callback_fn = None
     res = scipy.optimize.minimize(target_function,
                                   [0.1, 0.1, 0.1, 0.9, 0.0],
                                   None,
@@ -275,7 +301,7 @@ def minimize_test():
                                           (None, None),
                                           (None, None),
                                           (None, None)],
-                                  callback=callback)
+                                  callback=callback_fn)
     print(res.success)
     print(res.message.decode('utf-8', errors='replace'))
     (b1, b2) = state_to_beziers(res.x)
@@ -296,9 +322,72 @@ def draw_result(fname, b1, b2):
     sw.draw_box_marker(b2.p2.x, b2.p2.y)
     sw.write()
 
-if __name__ == '__main__':
-    minimize_test()
+def simple_draw():
     sw = SvgWriter('testfile.svg')
     sw.setup_canvas()
     sw.draw_splines()
     sw.write()
+
+def tangentstate_to_bezier(x):
+    p1 = Point(0, 0)
+    p2 = Point(1, 0)
+    c1 = Point(x[0], x[1])
+    c2 = Point(x[2], x[3])
+    b = Bezier(p1, c1, c2, p2)
+    return b
+
+def tangent_function(x, state=None):
+    skeleton_point = Point(0.6, 0.2)
+    b = tangentstate_to_bezier(x)
+    
+    # In reality calculate with normal.
+    tangential_point = Point(0.6, 0.3)
+    closest_t = b.closest_t(tangential_point)
+    closest_point = b.evaluate(closest_t)
+    #print('({}, {})'.format(closest_point.x, closest_point.y))
+    differential = b.evaluate_d1(closest_t)
+    distance_error = tangential_point.distance(closest_point)
+    diff_error = math.fabs(differential.y) # FIXME calculate as difference to real direction vector
+    total_energy = b.evaluate_energy()
+    #print(distance_error)
+    return distance_error + diff_error #+ 0.0002*total_energy
+
+def draw_tangent(fname, b):
+    targetpoint = Point(0.6, 0.2)
+    r = 0.1
+    sw = SvgWriter(fname)
+    sw.setup_canvas()
+    sw.draw_constraint_circle(targetpoint, r)
+    sw.draw_circle_marker(targetpoint.x, targetpoint.y)
+    sw.draw_cubicbezier(b)
+    sw.write()
+
+def tangent_callback(x):
+    global iter_count
+    b = tangentstate_to_bezier(x)
+    draw_tangent('tang_anim{}.svg'.format(iter_count), b)
+    iter_count += 1
+
+
+def tangent_test():
+    callback_fn = tangent_callback
+    callback_fn = None
+    initial_values = [0.0, 0.2, 1.0, 0.2]
+    if callback_fn is not None:
+        callback_fn(initial_values)
+    res = scipy.optimize.minimize(tangent_function,
+                                  initial_values,
+                                  None,
+                                  callback=callback_fn)
+    print(res.success)
+    message = res.message
+    if isinstance(message, bytes):
+        message = message.decode('utf-8', errors='replace')
+    print(message)
+    b = tangentstate_to_bezier(res.x)
+    draw_tangent('tangent.svg', b)
+
+if __name__ == '__main__':
+    #simple_draw()
+    basic_minimize_test()
+    tangent_test()
