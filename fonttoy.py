@@ -41,6 +41,34 @@ class Bezier:
         y = math.pow(1.0-t, 3)*self.p1.y + 3.0*math.pow(1.0-t, 2)*t*self.c1.y + 3.0*(1.0-t)*t*t*self.c2.y + math.pow(t, 3)*self.p2.y
         return Point(x, y)
 
+    def evaluate_d1(self, t):
+        x = 3.0*math.pow(1.0-t, 2)*(self.c1.x-self.p1.x) + 6.0*(1.0-t)*t*(self.c2.x-self.c1.x) + 3.0*t*t*(self.p2.x-self.c2.x)
+        y = 3.0*math.pow(1.0-t, 2)*(self.c1.y-self.p1.y) + 6.0*(1.0-t)*t*(self.c2.y-self.c1.y) + 3.0*t*t*(self.p2.y-self.c2.y)
+        return Point(x, y)
+
+    def evaluate_d2(self, t):
+        x = 6.0*(1.0-t)*(self.c2.x-2.0*self.c1.x + self.p1.x) + 6.0*t*(self.p2.x - 2.0*self.c2.x + self.p1.x)
+        y = 6.0*(1.0-t)*(self.c2.y-2.0*self.c1.y + self.p1.y) + 6.0*t*(self.p2.y - 2.0*self.c2.y + self.p1.y)
+        return Point(x, y)
+    
+    def evaluate_curvature(self, t):
+        d1 = self.evaluate_d1(t)
+        d2 = self.evaluate_d2(t)
+        k_nom = math.fabs(d1.x*d2.y - d1.y*d2.x)
+        k_denom = math.pow(d1.x*d1.x + d1.y*d1.y, 3.0/2.0)
+        return k_nom/k_denom
+
+    def evaluate_energy(self):
+        # Note: probably inaccurate.
+        i = 0.0
+        delta = 0.1
+        total_energy = 0.0
+        cutoff = (1.0 + delta/2)
+        while i<=cutoff:
+            total_energy += delta*self.evaluate_curvature(i)
+            i += delta
+        return total_energy
+
     def distance(self, p):
         i = 0.0
         delta = 0.1
@@ -228,7 +256,7 @@ def target_function(x, state):
     t1 = Point(0.1, 0.2)
     t2 = Point(0.9, 0.25)
 
-    return b1.distance(t1) + b2.distance(t2)
+    return b1.distance(t1) + b2.distance(t2) + 0.001*(b1.evaluate_energy() + b2.evaluate_energy())
 
 iter_count = 0
 
