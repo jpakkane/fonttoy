@@ -328,20 +328,19 @@ def simple_draw():
     sw.draw_splines()
     sw.write()
 
-def tangentstate_to_bezier(x):
+def tangentstate_to_beziers(x):
     p1 = Point(0, 0)
     p2 = Point(1, 0)
     c1 = Point(x[0], x[1])
     c2 = Point(x[2], x[3])
-    b = Bezier(p1, c1, c2, p2)
-    return b
+    b1 = Bezier(p1, c1, c2, p2)
+    c1 = Point(x[4], x[5])
+    c2 = Point(x[6], x[7])
+    b2 = Bezier(p1, c1, c2, p2)
+    return (b1, b2)
 
-def tangent_function(x, state=None):
-    skeleton_point = Point(0.6, 0.2)
-    b = tangentstate_to_bezier(x)
-    
+def tangent_energy(b, tangential_point):
     # In reality calculate with normal.
-    tangential_point = Point(0.6, 0.3)
     closest_t = b.closest_t(tangential_point)
     closest_point = b.evaluate(closest_t)
     #print('({}, {})'.format(closest_point.x, closest_point.y))
@@ -349,17 +348,28 @@ def tangent_function(x, state=None):
     distance_error = tangential_point.distance(closest_point)
     diff_error = math.fabs(differential.y) # FIXME calculate as difference to real direction vector
     total_energy = b.evaluate_energy()
-    #print(distance_error)
-    return distance_error + diff_error #+ 0.0002*total_energy
+    return distance_error + diff_error + 0.00015*total_energy
 
-def draw_tangent(fname, b):
+def tangent_function(x, state=None):
+    skeleton_point = Point(0.6, 0.2)
+    tangential_point1 = Point(0.6, 0.3)
+    tangential_point2 = Point(0.6, 0.1)
+    (b1, b2) = tangentstate_to_beziers(x)
+    
+    b1_err = tangent_energy(b1, tangential_point1)
+    b2_err = tangent_energy(b2, tangential_point2)
+    #print(distance_error)
+    return b1_err + b2_err 
+
+def draw_tangent(fname, b1, b2):
     targetpoint = Point(0.6, 0.2)
     r = 0.1
     sw = SvgWriter(fname)
     sw.setup_canvas()
     sw.draw_constraint_circle(targetpoint, r)
     sw.draw_circle_marker(targetpoint.x, targetpoint.y)
-    sw.draw_cubicbezier(b)
+    sw.draw_cubicbezier(b1)
+    sw.draw_cubicbezier(b2)
     sw.write()
 
 def tangent_callback(x):
@@ -372,7 +382,7 @@ def tangent_callback(x):
 def tangent_test():
     callback_fn = tangent_callback
     callback_fn = None
-    initial_values = [0.0, 0.2, 1.0, 0.2]
+    initial_values = [0.0, 0.2, 1.0, 0.2, 0.1, 0.0, 0.9, 0.0]
     if callback_fn is not None:
         callback_fn(initial_values)
     res = scipy.optimize.minimize(tangent_function,
@@ -384,8 +394,8 @@ def tangent_test():
     if isinstance(message, bytes):
         message = message.decode('utf-8', errors='replace')
     print(message)
-    b = tangentstate_to_bezier(res.x)
-    draw_tangent('tangent.svg', b)
+    (b1, b2) = tangentstate_to_beziers(res.x)
+    draw_tangent('tangent.svg', b1, b2)
 
 if __name__ == '__main__':
     #simple_draw()
