@@ -1,10 +1,9 @@
 *~
+__pycache__
 /build
 .settings
 .project
 .cproject
 .pydevproject
-testfile.svg
-anim*.svg
-fontout.svg
+*.svg
 
