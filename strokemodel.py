@@ -101,11 +101,10 @@ class Constraint:
     pass
 
 class FixedConstraint(Constraint):
-    def __init__(self, pointindexes: List[int], values: List[Point]):
+    def __init__(self, pointindex: int, value: Point):
         super().__init__()
-        assert(len(pointindexes) == len(values))
-        self.pointindexes = pointindexes
-        self.values = values
+        self.pointindex= pointindex
+        self.value = value
 
     def get_free_variables(self) -> List[float]:
         return []
@@ -114,10 +113,7 @@ class FixedConstraint(Constraint):
 #        return []
 
     def calculate_error(self, points: List[Point]) -> float:
-        total_error = 0.0
-        for i in range(len(self.pointindexes)):
-            total_error += self.values[i].distance(points[self.pointindexes[i]])
-        return total_error
+        return self.value.distance(points[self.pointindex])
 
     def get_limits(self):
         return []
@@ -127,11 +123,46 @@ class FixedConstraint(Constraint):
         return 0
 
     def update_model(self, points: List[Point]):
-        for i, pi in enumerate(self.pointindexes):
-            points[pi] = self.values[i]
+        points[self.pointindex] = self.value.clone()
 
     def determines_points(self) -> List[int]:
-        return self.pointindexes
+        return [self.pointindex]
+
+    def depends_on_constraints(self) -> List[int]:
+        return []
+
+class FreeConstraint(Constraint):
+    def __init__(self, point_index, default_value=None):
+        super().__init__()
+        self.point_index = point_index
+        if default_value is None:
+            self.value = Point(0.2, 0.3)
+        else:
+            self.value = default_value.clone()
+
+    def get_free_variables(self) -> List[float]:
+        return [self.value.x, self.value.y]
+
+#    def get_free_variable_default_values(self) -> List[float]:
+#        return []
+
+    def calculate_error(self, points: List[Point]) -> float:
+        return 0.0
+
+    def get_limits(self):
+        return []
+
+    def set_free_variables(self, new_values: List[float], offset: int) -> int:
+        assert(isinstance(new_values, list))
+        self.value.x = new_values[offset]
+        self.value.y = new_values[offset+1]
+        return 2
+
+    def update_model(self, points: List[Point]):
+        points[self.point_index] = self.value.clone()
+
+    def determines_points(self) -> List[int]:
+        return [self.point_index]
 
     def depends_on_constraints(self) -> List[int]:
         return []
@@ -176,10 +207,22 @@ class Stroke:
             limits += c.get_limits()
         return limits
 
-    def num_unconstrained_points(self) -> int:
+    def get_constrained_list(self) -> List[bool]:
         is_constrained = [False] * len(self.points)
         for c in self.constraints:
             for pi in c.determines_points():
                 assert(not is_constrained[pi])
                 is_constrained[pi] = True
+        return is_constrained
+
+    def num_unconstrained_points(self) -> int:
+        is_constrained = self.get_constrained_list()
         return len([x for x in is_constrained if not x])
+
+    def fill_free_constraints(self):
+        is_constrained = self.get_constrained_list()
+        for i in range(len(is_constrained)):
+            if is_constrained[i]:
+                continue
+            c = FreeConstraint(i, self.points[i])
+            self.add_constraint(c)

@@ -38,7 +38,7 @@ class TestStroke(unittest.TestCase):
         model = strokemodel.Stroke(1)
         target_point = strokemodel.Point(3, 3)
         last_point = model.points[-1].clone()
-        c1 = strokemodel.FixedConstraint([0], [target_point])
+        c1 = strokemodel.FixedConstraint(0, target_point)
         self.assertEqual(model.calculate_constraint_error(), 0.0)
         self.assertEqual(model.num_unconstrained_points(), 4)
         model.add_constraint(c1)
@@ -50,6 +50,18 @@ class TestStroke(unittest.TestCase):
         self.assertTrue(model.points[-1].is_close(last_point))
         self.assertEqual(model.calculate_constraint_error(), 0.0)
         self.assertEqual(model.num_unconstrained_points(), 3)
+
+    def test_free_constraint(self):
+        opt = DoNothingOptimizer()
+        model = strokemodel.Stroke(1)
+        p1 = model.points[0].clone()
+        self.assertEqual(model.num_unconstrained_points(), 4)
+        model.fill_free_constraints()
+        self.assertEqual(model.num_unconstrained_points(), 0)
+        self.assertEqual(len(model.constraints), 4)
+        opt.optimize(model)
+        self.assertTrue(p1.is_close(model.points[0]))
+
 
 if __name__ == '__main__':
     unittest.main()
