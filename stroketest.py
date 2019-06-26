@@ -19,6 +19,11 @@
 import unittest
 import strokemodel
 
+class DoNothingOptimizer:
+
+    def optimize(self, model):
+        pass
+
 class TestStroke(unittest.TestCase):
 
     def test_size(self):
@@ -28,15 +33,22 @@ class TestStroke(unittest.TestCase):
         self.assertEqual(len(model2.points), 19)
 
     def test_fixed(self):
+        opt = DoNothingOptimizer()
         model = strokemodel.Stroke(1)
         target_point = strokemodel.Point(3, 3)
         last_point = model.points[-1].clone()
         c1 = strokemodel.FixedConstraint([0], [target_point])
+        self.assertEqual(model.calculate_constraint_error(), 0.0)
+        self.assertEqual(model.num_unconstrained_points(), 4)
         model.add_constraint(c1)
         self.assertFalse(model.points[0].is_close(target_point))
-        model.single_round()
+        self.assertTrue(model.calculate_constraint_error() > 0.0)
+        self.assertEqual(model.num_unconstrained_points(), 3)
+        model.optimize(opt)
         self.assertTrue(model.points[0].is_close(target_point))
         self.assertTrue(model.points[-1].is_close(last_point))
+        self.assertEqual(model.calculate_constraint_error(), 0.0)
+        self.assertEqual(model.num_unconstrained_points(), 3)
 
 if __name__ == '__main__':
     unittest.main()

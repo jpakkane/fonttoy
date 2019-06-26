@@ -13,7 +13,7 @@
 # You should have received a copy of the GNU General Public License
 # along with this program; if not, see <http://www.gnu.org/licenses/>.
 
-from typing import List
+from typing import List, Any
 import math
 
 class Point:
@@ -101,8 +101,9 @@ class Constraint:
     pass
 
 class FixedConstraint(Constraint):
-    def __init__(self, pointindexes: List[int], values: List[float]):
+    def __init__(self, pointindexes: List[int], values: List[Point]):
         super().__init__()
+        assert(len(pointindexes) == len(values))
         self.pointindexes = pointindexes
         self.values = values
 
@@ -111,6 +112,12 @@ class FixedConstraint(Constraint):
 
 #    def get_free_variable_default_values(self) -> List[float]:
 #        return []
+
+    def calculate_error(self, points: List[Point]) -> float:
+        total_error = 0.0
+        for i in range(len(self.pointindexes)):
+            total_error += self.values[i].distance(points[self.pointindexes[i]])
+        return total_error
 
     def get_limits(self):
         return []
@@ -139,18 +146,23 @@ class Stroke:
         #self.beziers = []
         self.constraints = []
 
-    def add_constraint(self, c: Constraint):
+    def add_constraint(self, c: Constraint) -> None:
         self.constraints.append(c)
 
-    def single_round(self):
+    def calculate_constraint_error(self) -> float:
+        total_error = 0.0
+        for c in self.constraints:
+            total_error = c.calculate_error(self.points)
+        return total_error
+
+    def optimize(self, optimizer: Any):
         values = []
         limits = []
         for c in self.constraints:
             values += c.get_free_variables()
             limits += c.get_limits()
-        # Run optimizer here.
+        optimizer.optimize(self)
         assert(len(values) == len(limits))
-        # run optimizer here
         new_values = values # SUPER LEET!
         offset = 0
         for c in self.constraints:
@@ -159,3 +171,11 @@ class Stroke:
         # Topological sorting here.
         for c in self.constraints:
             c.update_model(self.points)
+
+    def num_unconstrained_points(self) -> int:
+        is_constrained = [False] * len(self.points)
+        for c in self.constraints:
+            for pi in c.determines_points():
+                assert(not is_constrained[pi])
+                is_constrained[pi] = True
+        return len([x for x in is_constrained if not x])
