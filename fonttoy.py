@@ -153,6 +153,14 @@ class SvgWriter:
         d.update(cross_stroke_style)
         ET.SubElement(self.canvas, 'path', **d)
 
+    def draw_line(self, p1, p2):
+        line_style = {'stroke-width': '0.001',
+                      'stroke': 'black'}
+        control = 'M {} {} L {} {}'.format(p1.x, p1.y, p2.x, p2.y)
+        d = {'d': control}
+        d.update(line_style)
+        ET.SubElement(self.canvas, 'path', **d)
+
     def horizontal_guide(self, h, txt):
         guide_style = {'stroke': 'black',
                        'stroke-width': '0.002',
@@ -331,6 +339,14 @@ def draw_model(fname, model):
         sw.draw_cubicbezier(b)
     for p in model.fixed_points():
         sw.draw_constraint_circle(p, r)
+    for b in model.beziers():
+        for t in [0.0, 0.2, 0.4, 0.6, 0.8]:
+            skeleton_point = b.evaluate(t)
+            left_step = b.evaluate_left_normal(t)
+            stroke_left = skeleton_point + left_step*r
+            stroke_right = skeleton_point - left_step*r
+            sw.draw_line(skeleton_point, stroke_left)
+            sw.draw_line(skeleton_point, stroke_right)
     sw.write()
 
 tunkki = None

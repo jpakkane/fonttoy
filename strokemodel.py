@@ -39,11 +39,11 @@ class Point:
     def distance(self, p) -> float:
         return math.sqrt(math.pow(p.x-self.x, 2) + math.pow(p.y-self.y, 2))
 
-    def normalized(self, p):
-        if math.fabs(p.x) < 0.0001 and math.fabs(p.y) < 0.0001:
+    def normalized(self):
+        if math.fabs(self.x) < 0.0001 and math.fabs(self.y) < 0.0001:
             return Point(0.0, 0.0)
         d = self.distance(Point(0, 0))
-        return Point(self.x/distance, self.y/distance)
+        return Point(self.x/d, self.y/d)
 
     def is_close(self, p) -> bool:
         return self.distance(p) < 0.0001
@@ -75,7 +75,12 @@ class Bezier:
         x = 6.0*(1.0-t)*(self.c2.x-2.0*self.c1.x + self.p1.x) + 6.0*t*(self.p2.x - 2.0*self.c2.x + self.p1.x)
         y = 6.0*(1.0-t)*(self.c2.y-2.0*self.c1.y + self.p1.y) + 6.0*t*(self.p2.y - 2.0*self.c2.y + self.p1.y)
         return Point(x, y)
-    
+
+    def evaluate_left_normal(self, t):
+        d1 = self.evaluate_d1(t)
+        dn = Point(-d1.y, d1.x)
+        return dn.normalized()
+
     def evaluate_curvature(self, t):
         d1 = self.evaluate_d1(t)
         d2 = self.evaluate_d2(t)
@@ -88,7 +93,7 @@ class Bezier:
     def evaluate_energy(self):
         # Note: probably inaccurate.
         i = 0.0
-        delta = 0.05
+        delta = 0.01
         total_energy = 0.0
         cutoff = (1.0 + delta/2)
         while i<=cutoff:
