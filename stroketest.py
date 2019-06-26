@@ -62,6 +62,12 @@ class TestStroke(unittest.TestCase):
         opt.optimize(model)
         self.assertTrue(p1.is_close(model.points[0]))
 
+    def test_bezcount(self):
+        model = strokemodel.Stroke(6)
+        count = 0
+        for _ in model.beziers():
+            count += 1
+        self.assertEqual(count, 6)
 
 if __name__ == '__main__':
     unittest.main()

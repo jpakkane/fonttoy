@@ -20,6 +20,7 @@ import xml.etree.ElementTree as ET#
 import math
 import scipy.optimize
 from strokemodel import Point, Bezier
+import strokemodel
 
 class SvgWriter:
 
@@ -322,7 +323,112 @@ def tangent_test():
     (b1, b2) = tangentstate_to_beziers(res.x)
     draw_tangent('tangent.svg', b1, b2)
 
+def draw_model(fname, model):
+    r = 0.05
+    sw = SvgWriter(fname)
+    sw.setup_canvas()
+    for b in model.beziers():
+        sw.draw_cubicbezier(b)
+    for p in model.fixed_points():
+        sw.draw_constraint_circle(p, r)
+    sw.write()
+
+tunkki = None
+
+def ess_callback(x):
+    global iter_count, tunkki
+    draw_model('ess_anim{}.svg'.format(iter_count), tunkki)
+    iter_count += 1
+
+
+def es_test():
+    h = 1.0
+    w = 0.7
+    e1 = 0.2
+    e2 = h-e1
+    e3 = 0.25
+    e4 = h-e3
+    r = 0.05
+
+    m = strokemodel.Stroke(6)
+
+    # All points first
+    m.add_constraint(strokemodel.FixedConstraint(0, Point(r, e1)))
+    m.add_constraint(strokemodel.FixedConstraint(3, Point(w/2, r)))
+    m.add_constraint(strokemodel.FixedConstraint(6, Point(w-r, e3)))
+    m.add_constraint(strokemodel.FixedConstraint(9, Point(w/2, h/2)))
+    m.add_constraint(strokemodel.FixedConstraint(12, Point(r, e4)))
+    m.add_constraint(strokemodel.FixedConstraint(15, Point(w/2, h-r)))
+    m.add_constraint(strokemodel.FixedConstraint(18, Point(w-r, e2)))
+
+    # Then control points.
+    m.add_constraint(strokemodel.DirectionConstraint(3, 2, math.pi))
+    m.add_constraint(strokemodel.MirrorConstraint(4, 2, 3))
+    m.add_constraint(strokemodel.DirectionConstraint(6, 5, 3.0*math.pi/2.0))
+    m.add_constraint(strokemodel.MirrorConstraint(7, 5, 6))
+    m.add_constraint(strokemodel.MirrorConstraint(10, 8, 9))
+    m.add_constraint(strokemodel.DirectionConstraint(12, 11, 3.0*math.pi/2.0))
+    m.add_constraint(strokemodel.MirrorConstraint(13, 11, 12))
+    m.add_constraint(strokemodel.DirectionConstraint(15, 14, math.pi))
+    m.add_constraint(strokemodel.MirrorConstraint(16, 14, 15))
+
+    assert(len(m.get_free_variables()) == 4)
+    m.points[17] = Point(0.6, 0.9)
+    m.fill_free_constraints()
+
+    assert(len(m.get_free_variables()) == 10)
+
+    class InvokeWrapper:
+        def __init__(self, model):
+            self.model = model
+            
+        def __call__(self, x, *args):
+            self.model.set_free_variables(x)
+            self.model.update_model()
+            return self.model.calculate_energy()
+            #return self.model.calculate_length()
+            #return self.model.calculate_length() + self.model.calculate_energy()
+
+    #print(m.get_free_variables())
+    #print(m.get_free_variable_limits())
+
+    global tunkki
+    tunkki = m
+    draw_model('ess.svg', m)
+    m.update_model()
+    draw_model('ess2.svg', m)
+
+    res = scipy.optimize.minimize(InvokeWrapper(m),
+                                  m.get_free_variables(),
+                                  None,
+                                  bounds=m.get_free_variable_limits(),
+                                  callback=ess_callback
+                                  )
+    m.set_free_variables(res.x)
+    draw_model('ess3.svg', m)
+    print(res.success)
+    message = res.message
+    if isinstance(message, bytes):
+        message = message.decode('utf-8', errors='replace')
+    print(message)
+
+def print_nums():
+    p1 = Point(0, 0)
+    c1 = Point(0.25, 0)
+    c2 = Point(0.75, 0)
+    p2 = Point(1, 0)
+    b = Bezier(p1, c2, c2, p2)
+    print(b.evaluate_length())
+    print(b.evaluate_energy())
+    b.c1 = Point(0.25, 0.25)
+    b.c2 = Point(0.75, -0.25)
+    print(b.evaluate_length())
+    print(b.evaluate_energy())
+
 if __name__ == '__main__':
     #simple_draw()
-    basic_minimize_test()
-    tangent_test()
+    #basic_minimize_test()
+    #tangent_test()
+    es_test()
+    #print_nums()
+

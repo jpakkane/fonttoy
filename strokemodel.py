@@ -21,6 +21,21 @@ class Point:
         self.x = float(x)
         self.y = float(y)
 
+    def __add__(self, p):
+        assert(isinstance(p, Point))
+        return Point(self.x + p.x, self.y + p.y)
+
+    def __sub__(self, p):
+        assert(isinstance(p, Point))
+        return Point(self.x - p.x, self.y-p.y)
+
+    def __mul__(self, ratio: float):
+        assert(isinstance(ratio, float))
+        return Point(self.x*ratio, self.y*ratio)
+
+    def __str__(self):
+        return '({}, {})'.format(self.x, self.y)
+
     def distance(self, p) -> float:
         return math.sqrt(math.pow(p.x-self.x, 2) + math.pow(p.y-self.y, 2))
 
@@ -43,6 +58,9 @@ class Bezier:
         self.c2 = c2
         self.p2 = p2
 
+    def __str__(self):
+        return '{} -> {} -> {} -> {}'.format(self.p1, self.c1, self.c2, self.p2)
+
     def evaluate(self, t):
         x = math.pow(1.0-t, 3)*self.p1.x + 3.0*math.pow(1.0-t, 2)*t*self.c1.x + 3.0*(1.0-t)*t*t*self.c2.x + math.pow(t, 3)*self.p2.x
         y = math.pow(1.0-t, 3)*self.p1.y + 3.0*math.pow(1.0-t, 2)*t*self.c1.y + 3.0*(1.0-t)*t*t*self.c2.y + math.pow(t, 3)*self.p2.y
@@ -63,18 +81,35 @@ class Bezier:
         d2 = self.evaluate_d2(t)
         k_nom = math.fabs(d1.x*d2.y - d1.y*d2.x)
         k_denom = math.pow(d1.x*d1.x + d1.y*d1.y, 3.0/2.0)
+        #if math.fabs(k_denom) < 0.000001:
+        #    print(self)
         return k_nom/k_denom
 
     def evaluate_energy(self):
         # Note: probably inaccurate.
         i = 0.0
-        delta = 0.1
+        delta = 0.05
         total_energy = 0.0
         cutoff = (1.0 + delta/2)
         while i<=cutoff:
             total_energy += delta*self.evaluate_curvature(i)
             i += delta
         return total_energy
+
+    def evaluate_length(self):
+        # Note: probably inaccurate.
+        i = 0.0
+        delta = 0.05
+        length = 0.0
+        cutoff = (1.0 + delta/2)
+        p = self.evaluate(0.0)
+        while i<=cutoff:
+            new_p = self.evaluate(i)
+            length += p.distance(new_p)
+            p = new_p
+            i += delta
+        return length
+
 
     def closest_t(self, p):
         t = 0.0
@@ -119,7 +154,7 @@ class FixedConstraint(Constraint):
         return []
 
     def set_free_variables(self, new_values: List[float], offset: int) -> int:
-        assert(isinstance(new_values, list))
+        #assert(isinstance(new_values, list))
         return 0
 
     def update_model(self, points: List[Point]):
@@ -150,10 +185,11 @@ class FreeConstraint(Constraint):
         return 0.0
 
     def get_limits(self):
-        return []
+        return [(None, None),
+                (None, None)]
 
     def set_free_variables(self, new_values: List[float], offset: int) -> int:
-        assert(isinstance(new_values, list))
+        #assert(isinstance(new_values, list))
         self.value.x = new_values[offset]
         self.value.y = new_values[offset+1]
         return 2
@@ -166,6 +202,77 @@ class FreeConstraint(Constraint):
 
     def depends_on_constraints(self) -> List[int]:
         return []
+
+class MirrorConstraint(Constraint):
+    def __init__(self, point_index, from_point_index, mirror_point_index):
+        super().__init__()
+        self.point_index = point_index
+        self.from_point_index = from_point_index
+        self.mirror_point_index = mirror_point_index
+
+    def get_free_variables(self) -> List[float]:
+        return []
+
+#    def get_free_variable_default_values(self) -> List[float]:
+#        return []
+
+    def calculate_error(self, points: List[Point]) -> float:
+        return 0.0
+
+    def get_limits(self):
+        return []
+
+    def set_free_variables(self, new_values: List[float], offset: int) -> int:
+        return 0
+
+    def update_model(self, points: List[Point]):
+        points[self.point_index] = points[self.mirror_point_index]*2.0 - points[self.from_point_index]
+
+    def determines_points(self) -> List[int]:
+        return [self.point_index]
+
+    def depends_on_constraints(self) -> List[int]:
+        return []
+
+class DirectionConstraint(Constraint):
+    def __init__(self, from_point_index, to_point_index, angle):
+        super().__init__()
+        self.from_point_index = from_point_index
+        self.to_point_index = to_point_index
+        assert(angle >= 0)
+        assert(angle <= 2*math.pi)
+        self.angle = angle
+        self.direction_unit_vector = Point(math.cos(self.angle), math.sin(self.angle))
+        self.distance = 0.2
+
+    def get_free_variables(self) -> List[float]:
+        return [self.distance]
+
+#    def get_free_variable_default_values(self) -> List[float]:
+#        return []
+
+    def calculate_error(self, points: List[Point]) -> float:
+        return 0.0
+
+    def get_limits(self):
+        return [(0, 10.0)]
+
+    def set_free_variables(self, new_values: List[float], offset: int) -> int:
+        #assert(isinstance(new_values, list))
+        self.distance = new_values[offset]
+        return 1
+
+    def update_model(self, points: List[Point]):
+        points[self.to_point_index] = points[self.from_point_index] + self.direction_unit_vector*self.distance
+
+    def determines_points(self) -> List[int]:
+        return [self.to_point_index]
+
+    def depends_on_constraints(self) -> List[int]:
+        return []
+
+    def depends_on_points(self) -> List[int]:
+        return [self.from_point_index]
 
 class Stroke:
 
@@ -186,6 +293,34 @@ class Stroke:
             total_error = c.calculate_error(self.points)
         return total_error
 
+    def calculate_energy(self) -> float:
+        total_energy = 0.0
+        for b in self.beziers():
+            b_energy = b.evaluate_energy()
+            total_energy += b_energy
+        return total_energy
+
+    def calculate_length(self) -> float:
+        total_length = 0.0
+        for b in self.beziers():
+            total_length += b.evaluate_length()
+        return total_length
+
+    def fixed_points(self):
+        i = 0
+        while i < len(self.points):
+            yield self.points[i]
+            i += 3
+
+    def beziers(self):
+        i = 3
+        while i < len(self.points):
+            yield Bezier(self.points[i-3],
+                         self.points[i-2],
+                         self.points[i-1],
+                         self.points[i])
+            i += 3
+
     def get_free_variables(self) -> List[float]:
         vars = []
         for c in self.constraints:
@@ -197,6 +332,9 @@ class Stroke:
         for c in self.constraints:
             offset += c.set_free_variables(new_values, offset)
         assert(offset == len(new_values))
+        self.update_model()
+
+    def update_model(self):
         # Topological sorting here.
         for c in self.constraints:
             c.update_model(self.points)
