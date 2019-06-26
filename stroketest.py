@@ -22,7 +22,8 @@ import strokemodel
 class DoNothingOptimizer:
 
     def optimize(self, model):
-        pass
+        vars = model.get_free_variables()
+        model.set_free_variables(vars)
 
 class TestStroke(unittest.TestCase):
 
@@ -44,7 +45,7 @@ class TestStroke(unittest.TestCase):
         self.assertFalse(model.points[0].is_close(target_point))
         self.assertTrue(model.calculate_constraint_error() > 0.0)
         self.assertEqual(model.num_unconstrained_points(), 3)
-        model.optimize(opt)
+        opt.optimize(model)
         self.assertTrue(model.points[0].is_close(target_point))
         self.assertTrue(model.points[-1].is_close(last_point))
         self.assertEqual(model.calculate_constraint_error(), 0.0)

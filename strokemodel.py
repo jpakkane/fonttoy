@@ -155,22 +155,26 @@ class Stroke:
             total_error = c.calculate_error(self.points)
         return total_error
 
-    def optimize(self, optimizer: Any):
-        values = []
-        limits = []
+    def get_free_variables(self) -> List[float]:
+        vars = []
         for c in self.constraints:
-            values += c.get_free_variables()
-            limits += c.get_limits()
-        optimizer.optimize(self)
-        assert(len(values) == len(limits))
-        new_values = values # SUPER LEET!
+            vars += c.get_free_variables()
+        return vars
+
+    def set_free_variables(self, new_values) -> None:
         offset = 0
         for c in self.constraints:
             offset += c.set_free_variables(new_values, offset)
-        assert(offset == len(values))
+        assert(offset == len(new_values))
         # Topological sorting here.
         for c in self.constraints:
             c.update_model(self.points)
+
+    def get_free_variable_limits(self):
+        limits = []
+        for c in self.constraints:
+            limits += c.get_limits()
+        return limits
 
     def num_unconstrained_points(self) -> int:
         is_constrained = [False] * len(self.points)
