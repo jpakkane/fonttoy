@@ -362,7 +362,7 @@ def es_test():
     w = 0.7
     e1 = 0.2
     e2 = h-e1
-    e3 = 0.25
+    e3 = 0.27
     e4 = h-e3
     r = 0.05
 
@@ -401,18 +401,16 @@ def es_test():
         def __call__(self, x, *args):
             self.model.set_free_variables(x)
             self.model.update_model()
-            return self.model.calculate_energy()
+            #return self.model.calculate_energy()
             #return self.model.calculate_length()
             #return self.model.calculate_length() + self.model.calculate_energy()
+            return self.model.evaluate_nohomogeneousness()
 
     #print(m.get_free_variables())
     #print(m.get_free_variable_limits())
 
     global tunkki
     tunkki = m
-    draw_model('ess.svg', m)
-    m.update_model()
-    draw_model('ess2.svg', m)
 
     res = scipy.optimize.minimize(InvokeWrapper(m),
                                   m.get_free_variables(),
@@ -421,7 +419,7 @@ def es_test():
                                   callback=ess_callback
                                   )
     m.set_free_variables(res.x)
-    draw_model('ess3.svg', m)
+    draw_model('ess_final.svg', m)
     print(res.success)
     message = res.message
     if isinstance(message, bytes):

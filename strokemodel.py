@@ -39,6 +39,9 @@ class Point:
     def distance(self, p) -> float:
         return math.sqrt(math.pow(p.x-self.x, 2) + math.pow(p.y-self.y, 2))
 
+    def length(self) -> float:
+        return math.sqrt(math.pow(self.x, 2) + math.pow(self.y, 2))
+
     def normalized(self):
         if math.fabs(self.x) < 0.0001 and math.fabs(self.y) < 0.0001:
             return Point(0.0, 0.0)
@@ -115,6 +118,20 @@ class Bezier:
             i += delta
         return length
 
+    def evaluate_nonhomogeneousness(self):
+        # Note: probably inaccurate.
+        i = 0.0
+        result = 0.0
+        delta = 0.01
+        length = 0.0
+        cutoff = (1.0 + delta/2)
+        p = self.evaluate(0.0)
+        while i<=cutoff:
+            h = self.evaluate_d2(i).length()
+            result = max(math.fabs(h), result) 
+            i += delta
+        return result
+        
 
     def closest_t(self, p):
         t = 0.0
@@ -310,6 +327,13 @@ class Stroke:
         for b in self.beziers():
             total_length += b.evaluate_length()
         return total_length
+
+    def evaluate_nohomogeneousness(self):
+        total_nh = 0.0
+        for b in self.beziers():
+            total_nh += b.evaluate_nonhomogeneousness()
+        return total_nh
+
 
     def fixed_points(self):
         i = 0
