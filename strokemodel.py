@@ -33,6 +33,10 @@ class Point:
         assert(isinstance(ratio, float))
         return Point(self.x*ratio, self.y*ratio)
 
+    def dot(self, other):
+        assert(isinstance(other, Point))
+        return self.x*other.x + self.y*other.y
+
     def __str__(self):
         return '({}, {})'.format(self.x, self.y)
 
@@ -131,7 +135,24 @@ class Bezier:
             result = max(math.fabs(h), result) 
             i += delta
         return result
-        
+
+    def evaluate_2nd_der_normal(self):
+        i = 0.0
+        result = 0.0
+        delta = 0.001
+        length = 0.0
+        cutoff = (1.0 + delta/2)
+        p = self.evaluate(0.0)
+        while i<=cutoff:
+            h = self.evaluate_d2(i)
+            left_n = self.evaluate_left_normal(i)
+            left_n_length = left_n.length() # Should be one, but zero in the degenerate case.
+            if left_n_length != 0:
+                assert(math.fabs(left_n_length - 1.0) < 0.0001)
+                projected = h.dot(left_n)/left_n.length()
+                result = max(math.fabs(projected), result) 
+            i += delta
+        return result
 
     def closest_t(self, p):
         t = 0.0
@@ -256,6 +277,42 @@ class MirrorConstraint(Constraint):
     def depends_on_constraints(self) -> List[int]:
         return []
 
+
+class SameOffsetConstraint(Constraint):
+    def __init__(self, point_index, relative_to_index, other_point_index, other_relative_to_index):
+        super().__init__()
+        self.point_index = point_index
+        self.relative_to_index = relative_to_index
+        self.other_point_index = other_point_index
+        self.other_relative_to_index = other_relative_to_index
+
+    def get_free_variables(self) -> List[float]:
+        return []
+
+#    def get_free_variable_default_values(self) -> List[float]:
+#        return []
+
+    def calculate_error(self, points: List[Point]) -> float:
+        return 0.0
+
+    def get_limits(self):
+        return []
+
+    def set_free_variables(self, new_values: List[float], offset: int) -> int:
+        return 0
+
+    def update_model(self, points: List[Point]):
+        delta = points[self.other_point_index] - points[self.other_relative_to_index]
+        new_point = points[self.relative_to_index] + delta
+        points[self.point_index] = new_point
+
+    def determines_points(self) -> List[int]:
+        return [self.point_index]
+
+    def depends_on_constraints(self) -> List[int]:
+        return []
+
+
 class DirectionConstraint(Constraint):
     def __init__(self, from_point_index, to_point_index, angle):
         super().__init__()
@@ -334,6 +391,34 @@ class Stroke:
             total_nh += b.evaluate_nonhomogeneousness()
         return total_nh
 
+    def evaluate_2nd_der_normal(self):
+        total_2nd_nor = 0.0
+        for b in self.beziers():
+            total_2nd_nor += b.evaluate_2nd_der_normal()
+        return total_2nd_nor
+
+    def evaluate_2nd_der_normal2(self):
+        total_2nd_nor = 0.0
+        beziers = []
+        for b in self.beziers():
+            beziers.append(b)
+        i = 0.0
+        result = 0.0
+        delta = 0.01
+        cutoff = len(beziers)
+        while i<=cutoff:
+            bezier_ind = int(i)
+            bezier_i = i % 1.0
+            cur_b = beziers[bezier_ind]
+            h = cur_b.evaluate_d2(bezier_i)
+            left_n = cur_b.evaluate_left_normal(i)
+            left_n_length = left_n.length() # Should be one, but zero in the degenerate case.
+            if left_n_length != 0:
+                assert(math.fabs(left_n_length - 1.0) < 0.0001)
+                projected = h.dot(left_n)/left_n.length()
+                result = max(math.fabs(projected), result) 
+            i += delta
+        return result
 
     def fixed_points(self):
         i = 0

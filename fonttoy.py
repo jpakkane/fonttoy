@@ -385,14 +385,18 @@ def es_test():
     m.add_constraint(strokemodel.MirrorConstraint(10, 8, 9))
     m.add_constraint(strokemodel.DirectionConstraint(12, 11, 3.0*math.pi/2.0))
     m.add_constraint(strokemodel.MirrorConstraint(13, 11, 12))
-    m.add_constraint(strokemodel.DirectionConstraint(15, 14, math.pi))
+    m.add_constraint(strokemodel.SameOffsetConstraint(14, 15, 2, 3))
     m.add_constraint(strokemodel.MirrorConstraint(16, 14, 15))
+    m.add_constraint(strokemodel.SameOffsetConstraint(17, 18, 0, 1))
 
-    assert(len(m.get_free_variables()) == 4)
+    assert(len(m.get_free_variables()) == 3)
     m.points[17] = Point(0.6, 0.9)
     m.fill_free_constraints()
+    assert(len(m.get_free_variables()) == 7)
 
-    assert(len(m.get_free_variables()) == 10)
+    global tunkki
+    tunkki = m
+    ess_callback(None)
 
     class InvokeWrapper:
         def __init__(self, model):
@@ -404,13 +408,8 @@ def es_test():
             #return self.model.calculate_energy()
             #return self.model.calculate_length()
             #return self.model.calculate_length() + self.model.calculate_energy()
-            return self.model.evaluate_nohomogeneousness()
+            return self.model.evaluate_2nd_der_normal2()
 
-    #print(m.get_free_variables())
-    #print(m.get_free_variable_limits())
-
-    global tunkki
-    tunkki = m
 
     res = scipy.optimize.minimize(InvokeWrapper(m),
                                   m.get_free_variables(),
