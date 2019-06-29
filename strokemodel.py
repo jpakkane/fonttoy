@@ -277,6 +277,37 @@ class MirrorConstraint(Constraint):
     def depends_on_constraints(self) -> List[int]:
         return []
 
+class SmoothConstraint(Constraint):
+    def __init__(self, this_control_index, other_control_index, curve_point_index):
+        super().__init__()
+        self.this_control_index = this_control_index
+        self.other_control_index = other_control_index
+        self.curve_point_index = curve_point_index
+        self.alpha = 1.0
+
+    def get_free_variables(self) -> List[float]:
+        return [self.alpha]
+
+    def calculate_error(self, points: List[Point]) -> float:
+        return 0.0
+
+    def get_limits(self):
+        return [(0.01, None)]
+
+    def set_free_variables(self, new_values: List[float], offset: int) -> int:
+        self.alpha = new_values[offset]
+        return 1
+
+    def update_model(self, points: List[Point]):
+        delta = points[self.other_control_index] - points[self.curve_point_index]
+        points[self.this_control_index] = points[self.curve_point_index] - delta*self.alpha
+
+    def determines_points(self) -> List[int]:
+        return [self.this_control_index]
+
+    def depends_on_constraints(self) -> List[int]:
+        return []
+
 
 class SameOffsetConstraint(Constraint):
     def __init__(self, point_index, relative_to_index, other_point_index, other_relative_to_index):
@@ -356,15 +387,33 @@ class DirectionConstraint(Constraint):
 class Stroke:
 
     def __init__(self, num_beziers: int):
+        self.num_beziers = num_beziers
         self.points = []
         num_points = (num_beziers)*3 + 1
         for i in range(num_points):
             self.points.append(Point(i/num_points, i/num_points))
         #self.beziers = []
         self.constraints = []
+        self.bezier_target_points = []
 
     def add_constraint(self, c: Constraint) -> None:
         self.constraints.append(c)
+
+    def add_bezier_target_point(self, i, p):
+        assert(i>=0)
+        assert(i<self.num_beziers)
+        assert(isinstance(p, Point))
+        self.bezier_target_points.append((i, p))
+
+    def calculate_something(self):
+        return self.calculate_bezier_errors() + 0.2*self.evaluate_2nd_der_normal2()
+
+    def calculate_bezier_errors(self):
+        total_error = 0.0
+        beziers = list(self.beziers())
+        for b_ind, target in self.bezier_target_points:
+            total_error += beziers[b_ind].distance(target)
+        return total_error
 
     def calculate_constraint_error(self) -> float:
         total_error = 0.0
@@ -425,6 +474,13 @@ class Stroke:
         while i < len(self.points):
             yield self.points[i]
             i += 3
+
+    def bezier(self, ind):
+        i = (ind+1)*3
+        return Bezier(self.points[i-3],
+                      self.points[i-2],
+                      self.points[i-1],
+                      self.points[i])
 
     def beziers(self):
         i = 3

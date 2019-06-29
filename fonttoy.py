@@ -72,7 +72,7 @@ class SvgWriter:
     def draw_splines(self):
         self.cubic_bezier(0.0, 0.0, 0.2, 0.8, 0.9, -0.2, 1.0, 0.0)
 
-    def draw_cubicbezier(self, b):
+    def draw_cubicbezier(self, b, draw_controls=True):
         self.cubic_bezier(b.p1.x,
                           b.p1.y,
                           b.c1.x,
@@ -80,7 +80,8 @@ class SvgWriter:
                           b.c2.x,
                           b.c2.y,
                           b.p2.x,
-                          b.p2.y)
+                          b.p2.y,
+                          draw_controls)
 
     def draw_box_marker(self, x, y):
         boxwidth = 0.02
@@ -113,7 +114,7 @@ class SvgWriter:
                                               'stroke': 'black',
                                               'stroke-width': '0.002',})
 
-    def cubic_bezier(self, x1, y1, c1x, c1y, c2x, c2y, x2, y2):
+    def cubic_bezier(self, x1, y1, c1x, c1y, c2x, c2y, x2, y2, draw_controls=True):
         spline_style = {'stroke-width': '0.002',
                         'stroke': 'black',
                         'fill': 'none'}
@@ -126,17 +127,18 @@ class SvgWriter:
         spline = 'M{} {} C {} {} {} {} {} {}'.format(x1, y1, c1x, c1y, c2x, c2y, x2, y2)
         d = {'d': spline}
         d.update(spline_style)
-        ET.SubElement(self.canvas, 'path', **d) 
-        control1 = 'M{} {} L {} {}'.format(x1, y1, c1x, c1y)
-        d = {'d': control1}
-        d.update(spline_control_line_style)
         ET.SubElement(self.canvas, 'path', **d)
-        control2 = 'M{} {} L {} {}'.format(x2, y2, c2x, c2y)
-        d = {'d': control2}
-        d.update(spline_control_line_style)
-        ET.SubElement(self.canvas, 'path', **d)
-        self.cross(c1x, c1y, 0.01)
-        self.cross(c2x, c2y, 0.01)
+        if draw_controls:
+            control1 = 'M{} {} L {} {}'.format(x1, y1, c1x, c1y)
+            d = {'d': control1}
+            d.update(spline_control_line_style)
+            ET.SubElement(self.canvas, 'path', **d)
+            control2 = 'M{} {} L {} {}'.format(x2, y2, c2x, c2y)
+            d = {'d': control2}
+            d.update(spline_control_line_style)
+            ET.SubElement(self.canvas, 'path', **d)
+            self.cross(c1x, c1y, 0.01)
+            self.cross(c2x, c2y, 0.01)
 
     def cross(self, x, y, boxsize):
         cross_stroke_style = {'stroke-width': '0.002',
@@ -331,7 +333,7 @@ def tangent_test():
     (b1, b2) = tangentstate_to_beziers(res.x)
     draw_tangent('tangent.svg', b1, b2)
 
-def draw_model(fname, model):
+def draw_model(fname, model, model2=None):
     r = 0.05
     sw = SvgWriter(fname)
     sw.setup_canvas()
@@ -347,13 +349,17 @@ def draw_model(fname, model):
             stroke_right = skeleton_point - left_step*r
             sw.draw_line(skeleton_point, stroke_left)
             sw.draw_line(skeleton_point, stroke_right)
+    if model2:
+        for b in model2.beziers():
+            sw.draw_cubicbezier(b)
+
     sw.write()
 
 tunkki = None
-
+tunkki2 = None
 def ess_callback(x):
-    global iter_count, tunkki
-    draw_model('ess_anim{}.svg'.format(iter_count), tunkki)
+    global iter_count, tunkki, tunkki2
+    draw_model('ess_anim{}.svg'.format(iter_count), tunkki, tunkki2)
     iter_count += 1
 
 
@@ -419,6 +425,53 @@ def es_test():
                                   )
     m.set_free_variables(res.x)
     draw_model('ess_final.svg', m)
+    print(res.success)
+    message = res.message
+    if isinstance(message, bytes):
+        message = message.decode('utf-8', errors='replace')
+    print(message)
+    build_sides(m)
+
+def build_sides(m):
+    r = 0.05
+    lm = strokemodel.Stroke(m.num_beziers)
+    lm.points = m.points[:]
+    zerob = m.bezier(0)
+    lm.add_constraint(strokemodel.SmoothConstraint(4, 2, 3))
+    lm.add_constraint(strokemodel.SmoothConstraint(7, 5, 6))
+    lm.add_constraint(strokemodel.SmoothConstraint(13, 11, 12))
+    lm.add_constraint(strokemodel.SmoothConstraint(16, 14, 15))
+    lm.add_constraint(strokemodel.FixedConstraint(0, zerob.evaluate(0) + zerob.evaluate_left_normal(0.0)*r))
+    for i in range(0, lm.num_beziers):
+        curbez = m.bezier(i)
+        lm.add_constraint(strokemodel.FixedConstraint((i+1)*3, curbez.evaluate(1.0) + curbez.evaluate_left_normal(1.0)*r))
+        for o in (0.2, 0.4, 0.6, 0.8):
+            lm.add_bezier_target_point(i, curbez.evaluate(o) + curbez.evaluate_left_normal(o)*r)
+    lm.fill_free_constraints()
+
+    global tunkki2
+    tunkki2 = lm
+
+    class InvokeWrapper:
+        def __init__(self, model):
+            self.model = model
+            
+        def __call__(self, x, *args):
+            self.model.set_free_variables(x)
+            self.model.update_model()
+            #return self.model.calculate_energy()
+            #return self.model.calculate_length()
+            #return self.model.calculate_length() + self.model.calculate_energy()
+            return self.model.calculate_something()
+
+    res = scipy.optimize.minimize(InvokeWrapper(lm),
+                                  lm.get_free_variables(),
+                                  None,
+                                  bounds=lm.get_free_variable_limits(),
+                                  callback=ess_callback
+                                  )
+    lm.set_free_variables(res.x)
+    draw_model('ess_sides.svg', m, lm)
     print(res.success)
     message = res.message
     if isinstance(message, bytes):
