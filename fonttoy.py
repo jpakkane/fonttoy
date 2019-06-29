@@ -69,6 +69,20 @@ class SvgWriter:
         self.horizontal_guide(self.ascender_height, 'Ascender height')
         self.horizontal_guide(self.descender_height, 'Descender depth')
 
+    def draw_filled_shape(self, b1, b2):
+        shape_style = {'stroke': 'none',
+                       'fill': 'red'}
+        shape = 'M {} {} '.format(b1[0].p1.x, b1[0].p1.y)
+        for b in b1:
+            shape += 'C {} {} {} {} {} {} '.format(b.c1.x, b.c1.y, b.c2.x, b.c2.y, b.p2.x, b.p2.y)
+        shape += 'L {} {}'.format(b2[0].p1.x, b2[0].p1.y)
+        for b in b2:
+            shape += 'C {} {} {} {} {} {} '.format(b.c1.x, b.c1.y, b.c2.x, b.c2.y, b.p2.x, b.p2.y)
+        shape += ' z'
+        d = {'d': shape}
+        d.update(shape_style)
+        ET.SubElement(self.canvas, 'path', **d)
+
     def draw_splines(self):
         self.cubic_bezier(0.0, 0.0, 0.2, 0.8, 0.9, -0.2, 1.0, 0.0)
 
@@ -355,6 +369,12 @@ def draw_model(fname, model, model2=None):
 
     sw.write()
 
+def draw_filled(fname, b1, b2):
+    sw = SvgWriter(fname)
+    sw.setup_canvas()
+    sw.draw_filled_shape(b1, b2)
+    sw.write()
+
 tunkki = None
 tunkki2 = None
 def ess_callback(x):
@@ -432,13 +452,25 @@ def es_test():
     print(message)
     build_sides(m)
 
+def reverse_bezlist(beziers):
+    result = []
+    for b in beziers:
+        result.append(strokemodel.Bezier(b.p2, b.c2, b.c1, b.p1))
+    return result[::-1]
+
 def build_sides(m):
+    lm = build_left_side(m)
+    rm = build_right_side(m)
+    draw_filled('filled.svg', list(lm.beziers()), reverse_bezlist(list(rm.beziers())))
+
+def build_left_side(m):
     r = 0.05
     lm = strokemodel.Stroke(m.num_beziers)
     lm.points = m.points[:]
     zerob = m.bezier(0)
     lm.add_constraint(strokemodel.SmoothConstraint(4, 2, 3))
     lm.add_constraint(strokemodel.SmoothConstraint(7, 5, 6))
+    lm.add_constraint(strokemodel.SmoothConstraint(10, 8, 9))
     lm.add_constraint(strokemodel.SmoothConstraint(13, 11, 12))
     lm.add_constraint(strokemodel.SmoothConstraint(16, 14, 15))
     lm.add_constraint(strokemodel.FixedConstraint(0, zerob.evaluate(0) + zerob.evaluate_left_normal(0.0)*r))
@@ -477,6 +509,56 @@ def build_sides(m):
     if isinstance(message, bytes):
         message = message.decode('utf-8', errors='replace')
     print(message)
+    return lm
+
+# Yes, it's terrible but what do you expect. It's 3 AM currently
+def build_right_side(m):
+    r = 0.05
+    lm = strokemodel.Stroke(m.num_beziers)
+    lm.points = m.points[:]
+    zerob = m.bezier(0)
+    lm.add_constraint(strokemodel.SmoothConstraint(4, 2, 3))
+    lm.add_constraint(strokemodel.SmoothConstraint(7, 5, 6))
+    lm.add_constraint(strokemodel.SmoothConstraint(10, 8, 9))
+    lm.add_constraint(strokemodel.SmoothConstraint(13, 11, 12))
+    lm.add_constraint(strokemodel.SmoothConstraint(16, 14, 15))
+    lm.add_constraint(strokemodel.FixedConstraint(0, zerob.evaluate(0) - zerob.evaluate_left_normal(0.0)*r))
+    for i in range(0, lm.num_beziers):
+        curbez = m.bezier(i)
+        lm.add_constraint(strokemodel.FixedConstraint((i+1)*3, curbez.evaluate(1.0) - curbez.evaluate_left_normal(1.0)*r))
+        for o in (0.2, 0.4, 0.6, 0.8):
+            lm.add_bezier_target_point(i, curbez.evaluate(o) - curbez.evaluate_left_normal(o)*r)
+    lm.fill_free_constraints()
+
+    global tunkki2
+    tunkki2 = lm
+
+    class InvokeWrapper:
+        def __init__(self, model):
+            self.model = model
+            
+        def __call__(self, x, *args):
+            self.model.set_free_variables(x)
+            self.model.update_model()
+            #return self.model.calculate_energy()
+            #return self.model.calculate_length()
+            #return self.model.calculate_length() + self.model.calculate_energy()
+            return self.model.calculate_something()
+
+    res = scipy.optimize.minimize(InvokeWrapper(lm),
+                                  lm.get_free_variables(),
+                                  None,
+                                  bounds=lm.get_free_variable_limits(),
+                                  callback=ess_callback
+                                  )
+    lm.set_free_variables(res.x)
+    draw_model('ess_sides2.svg', m, lm)
+    print(res.success)
+    message = res.message
+    if isinstance(message, bytes):
+        message = message.decode('utf-8', errors='replace')
+    print(message)
+    return lm
 
 def print_nums():
     p1 = Point(0, 0)
