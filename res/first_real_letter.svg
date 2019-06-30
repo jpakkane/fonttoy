@@ -1,0 +1,67 @@
+<?xml version="1.0" ?>
+<svg height="1400px" width="1200px" xmlns="http://www.w3.org/2000/svg">
+  <rect fill="white" height="1400px" width="1200px"/>
+  <g transform="translate(100, 1100)">
+    <g transform="matrix(1, 0, 0, -1, 0, 0)">
+      <g transform="scale(1000)">
+        <line stroke="black" stroke-width="0.002" x1="-20" x2="20" y1="0" y2="0"/>
+        <line stroke="black" stroke-width="0.002" x1="0" x2="0" y1="-20" y2="20"/>
+        <line stroke="black" stroke-width="0.002" x1="-20" x2="20" y1="1" y2="1"/>
+        <line stroke="black" stroke-width="0.002" x1="1" x2="1" y1="-20" y2="20"/>
+        <line stroke="black" stroke-width="0.001" x1="0.7" x2="0.7" y1="-20" y2="20"/>
+        <g transform="translate(-0.052, -0.022)">
+          <g transform="matrix(1, 0, 0, -1, 0, 0)">
+            <text fill="black" font-size="0.02" x="0" y="0">(0, 0)</text>
+          </g>
+        </g>
+        <g transform="translate(1.01, 1.01)">
+          <g transform="matrix(1, 0, 0, -1, 0, 0)">
+            <text fill="black" font-size="0.02" x="0" y="0">(1, 1)</text>
+          </g>
+        </g>
+        <g transform="translate(0.71, 1.01)">
+          <g transform="matrix(1, 0, 0, -1, 0, 0)">
+            <text fill="black" font-size="0.02" x="0" y="0">(w, 1)</text>
+          </g>
+        </g>
+        <line stroke="black" stroke-dasharray="0.01,0.01" stroke-width="0.002" x1="-20" x2="20" y1="0.6" y2="0.6"/>
+        <g transform="translate(0.82, 0.602)">
+          <g transform="matrix(1, 0, 0, -1, 0, 0)">
+            <text fill="black" font-size="0.02" x="0" y="0">X-height</text>
+          </g>
+        </g>
+        <line stroke="black" stroke-dasharray="0.01,0.01" stroke-width="0.002" x1="-20" x2="20" y1="0.62" y2="0.62"/>
+        <g transform="translate(0.82, 0.622)">
+          <g transform="matrix(1, 0, 0, -1, 0, 0)">
+            <text fill="black" font-size="0.02" x="0" y="0">X-overshoot</text>
+          </g>
+        </g>
+        <line stroke="black" stroke-dasharray="0.01,0.01" stroke-width="0.002" x1="-20" x2="20" y1="-0.02" y2="-0.02"/>
+        <g transform="translate(0.82, -0.018000000000000002)">
+          <g transform="matrix(1, 0, 0, -1, 0, 0)">
+            <text fill="black" font-size="0.02" x="0" y="0">Undershoot</text>
+          </g>
+        </g>
+        <line stroke="black" stroke-dasharray="0.01,0.01" stroke-width="0.002" x1="-20" x2="20" y1="0.9" y2="0.9"/>
+        <g transform="translate(0.82, 0.902)">
+          <g transform="matrix(1, 0, 0, -1, 0, 0)">
+            <text fill="black" font-size="0.02" x="0" y="0">Cap height</text>
+          </g>
+        </g>
+        <line stroke="black" stroke-dasharray="0.01,0.01" stroke-width="0.002" x1="-20" x2="20" y1="0.92" y2="0.92"/>
+        <g transform="translate(0.82, 0.922)">
+          <g transform="matrix(1, 0, 0, -1, 0, 0)">
+            <text fill="black" font-size="0.02" x="0" y="0">Ascender height</text>
+          </g>
+        </g>
+        <line stroke="black" stroke-dasharray="0.01,0.01" stroke-width="0.002" x1="-20" x2="20" y1="-0.2" y2="-0.2"/>
+        <g transform="translate(0.82, -0.198)">
+          <g transform="matrix(1, 0, 0, -1, 0, 0)">
+            <text fill="black" font-size="0.02" x="0" y="0">Descender depth</text>
+          </g>
+        </g>
+        <path d="M 0.09886269902898231 0.2106036146479911 C 0.1196831135686344 0.11466070432142557 0.1957117524031403 0.10000000000000002 0.35 0.1 C 0.495341975249353 0.09999999999999999 0.5999999999999999 0.13268636130363404 0.5999999999999999 0.27 C 0.5999999999999999 0.4023520621601788 0.48812710381529245 0.43019791995721457 0.34307542126776597 0.45048181940558507 C 0.20538370915932566 0.46973650707435083 -4.5001953552909134e-17 0.48502077505535335 0.0 0.73 C 4.6275078974510506e-17 0.9819097969402498 0.17113311896119998 1.0 0.35 1.0 C 0.49209938140840553 1.0 0.6596479812216186 0.9913096171295774 0.6988626988697559 0.8106036153817244 L 0.6011373011302439 0.7893963846182757C 0.5804507673299808 0.8847223499002144 0.4975438804466272 0.8999999999999999 0.35 0.8999999999999999 C 0.19811913495147052 0.8999999999999999 0.10000000000000003 0.8841811820933864 0.1 0.73 C 0.09999999999999998 0.5747277449424938 0.20645610763275798 0.5705595589798865 0.356924578732234 0.5495181805944149 C 0.5125172100531208 0.5277602441596813 0.7 0.5043901123285119 0.7 0.27 C 0.7 0.03788400010129356 0.5001780049599469 -1.8391501307653427e-17 0.35 0.0 C 0.20387172653425326 1.7895552236475583e-17 0.040208072592553566 0.009353690671954823 0.0011373009710176907 0.18939638535200892  z" fill="red" stroke="none"/>
+      </g>
+    </g>
+  </g>
+</svg>
