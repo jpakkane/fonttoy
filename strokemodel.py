@@ -40,6 +40,9 @@ class Point:
     def __str__(self):
         return '({}, {})'.format(self.x, self.y)
 
+    def angle(self) -> float:
+        return math.atan2(self.y, self.x)
+
     def distance(self, p) -> float:
         return math.sqrt(math.pow(p.x-self.x, 2) + math.pow(p.y-self.y, 2))
 
@@ -349,8 +352,8 @@ class DirectionConstraint(Constraint):
         super().__init__()
         self.from_point_index = from_point_index
         self.to_point_index = to_point_index
-        assert(angle >= 0)
-        assert(angle <= 2*math.pi)
+        #assert(angle >= 0)
+        #assert(angle <= 2*math.pi)
         self.angle = angle
         self.direction_unit_vector = Point(math.cos(self.angle), math.sin(self.angle))
         self.distance = 0.2
@@ -383,6 +386,49 @@ class DirectionConstraint(Constraint):
 
     def depends_on_points(self) -> List[int]:
         return [self.from_point_index]
+
+class AngleConstraint(Constraint):
+    def __init__(self, point_index, from_point_index, min_angle, max_angle):
+        super().__init__()
+        self.point_index = point_index
+        self.from_point_index = from_point_index
+        assert(max_angle >= min_angle)
+        self.min_angle = min_angle
+        self.max_angle = max_angle
+        self.angle = (self.min_angle + self.max_angle)/2
+        self.distance = 0.2
+
+    def get_free_variables(self) -> List[float]:
+        return [self.angle, self.distance]
+
+#    def get_free_variable_default_values(self) -> List[float]:
+#        return []
+
+    def calculate_error(self, points: List[Point]) -> float:
+        return 0.0
+
+    def get_limits(self):
+        return [(self.min_angle, self.max_angle),
+                (0, 10.0)]
+
+    def set_free_variables(self, new_values: List[float], offset: int) -> int:
+        self.angle = new_values[offset]
+        self.distance = new_values[offset+1]
+        return 2
+
+    def update_model(self, points: List[Point]):
+        direction_unit_vector = Point(math.cos(self.angle), math.sin(self.angle))
+        points[self.point_index] = points[self.from_point_index] + direction_unit_vector*self.distance
+
+    def determines_points(self) -> List[int]:
+        return [self.point_index]
+
+    def depends_on_constraints(self) -> List[int]:
+        return []
+
+    def depends_on_points(self) -> List[int]:
+        return [self.from_point_index]
+
 
 class Stroke:
 

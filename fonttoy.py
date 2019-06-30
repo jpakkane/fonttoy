@@ -408,6 +408,10 @@ def es_test():
     m.add_constraint(strokemodel.MirrorConstraint(4, 2, 3))
     m.add_constraint(strokemodel.DirectionConstraint(6, 5, 3.0*math.pi/2.0))
     m.add_constraint(strokemodel.MirrorConstraint(7, 5, 6))
+    m.add_constraint(strokemodel.AngleConstraint(8,
+                                                 9,
+                                                 (360.0-15.0)/360.0*2.0*math.pi,
+                                                 (360.0-1.0)/360.0*2.0*math.pi))
     m.add_constraint(strokemodel.MirrorConstraint(10, 8, 9))
     m.add_constraint(strokemodel.DirectionConstraint(12, 11, 3.0*math.pi/2.0))
     m.add_constraint(strokemodel.MirrorConstraint(13, 11, 12))
@@ -415,7 +419,7 @@ def es_test():
     m.add_constraint(strokemodel.MirrorConstraint(16, 14, 15))
     m.add_constraint(strokemodel.SameOffsetConstraint(17, 18, 0, 1))
 
-    assert(len(m.get_free_variables()) == 3)
+    assert(len(m.get_free_variables()) == 5)
     m.points[17] = Point(0.6, 0.9)
     m.fill_free_constraints()
     assert(len(m.get_free_variables()) == 7)
@@ -474,6 +478,11 @@ def build_left_side(m):
     lm.add_constraint(strokemodel.SmoothConstraint(13, 11, 12))
     lm.add_constraint(strokemodel.SmoothConstraint(16, 14, 15))
     lm.add_constraint(strokemodel.FixedConstraint(0, zerob.evaluate(0) + zerob.evaluate_left_normal(0.0)*r))
+
+    # Edge is parallel to the skeleton.
+    lm.add_constraint(strokemodel.DirectionConstraint(0, 1, zerob.evaluate_d1(0.0).angle()))
+    for i, b in enumerate(m.beziers()):
+        lm.add_constraint(strokemodel.DirectionConstraint(3*(i+1), 3*(i+1)-1, b.evaluate_d1(1.0).angle() + math.pi))
     for i in range(0, lm.num_beziers):
         curbez = m.bezier(i)
         lm.add_constraint(strokemodel.FixedConstraint((i+1)*3, curbez.evaluate(1.0) + curbez.evaluate_left_normal(1.0)*r))
@@ -490,6 +499,7 @@ def build_left_side(m):
             
         def __call__(self, x, *args):
             self.model.set_free_variables(x)
+            self.model.update_model()
             self.model.update_model()
             #return self.model.calculate_energy()
             #return self.model.calculate_length()
@@ -523,6 +533,11 @@ def build_right_side(m):
     lm.add_constraint(strokemodel.SmoothConstraint(13, 11, 12))
     lm.add_constraint(strokemodel.SmoothConstraint(16, 14, 15))
     lm.add_constraint(strokemodel.FixedConstraint(0, zerob.evaluate(0) - zerob.evaluate_left_normal(0.0)*r))
+
+    # Edge is parallel to the skeleton.
+    lm.add_constraint(strokemodel.DirectionConstraint(0, 1, zerob.evaluate_d1(0.0).angle()))
+    for i, b in enumerate(m.beziers()):
+        lm.add_constraint(strokemodel.DirectionConstraint(3*(i+1), 3*(i+1)-1, b.evaluate_d1(1.0).angle() + math.pi))
     for i in range(0, lm.num_beziers):
         curbez = m.bezier(i)
         lm.add_constraint(strokemodel.FixedConstraint((i+1)*3, curbez.evaluate(1.0) - curbez.evaluate_left_normal(1.0)*r))
@@ -540,6 +555,7 @@ def build_right_side(m):
         def __call__(self, x, *args):
             self.model.set_free_variables(x)
             self.model.update_model()
+            self.model.update_model()
             #return self.model.calculate_energy()
             #return self.model.calculate_length()
             #return self.model.calculate_length() + self.model.calculate_energy()
@@ -552,7 +568,7 @@ def build_right_side(m):
                                   callback=ess_callback
                                   )
     lm.set_free_variables(res.x)
-    draw_model('ess_sides2.svg', m, lm)
+    draw_model('ess_sides.svg', m, lm)
     print(res.success)
     message = res.message
     if isinstance(message, bytes):
