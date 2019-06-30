@@ -407,22 +407,22 @@ def es_test():
     m.add_constraint(strokemodel.DirectionConstraint(3, 2, math.pi))
     m.add_constraint(strokemodel.MirrorConstraint(4, 2, 3))
     m.add_constraint(strokemodel.DirectionConstraint(6, 5, 3.0*math.pi/2.0))
-    m.add_constraint(strokemodel.MirrorConstraint(7, 5, 6))
+    m.add_constraint(strokemodel.SmoothConstraint(7, 5, 6))
     m.add_constraint(strokemodel.AngleConstraint(8,
                                                  9,
                                                  (360.0-15.0)/360.0*2.0*math.pi,
                                                  (360.0-1.0)/360.0*2.0*math.pi))
     m.add_constraint(strokemodel.MirrorConstraint(10, 8, 9))
     m.add_constraint(strokemodel.DirectionConstraint(12, 11, 3.0*math.pi/2.0))
-    m.add_constraint(strokemodel.MirrorConstraint(13, 11, 12))
+    m.add_constraint(strokemodel.SmoothConstraint(13, 11, 12))
     m.add_constraint(strokemodel.SameOffsetConstraint(14, 15, 2, 3))
     m.add_constraint(strokemodel.MirrorConstraint(16, 14, 15))
     m.add_constraint(strokemodel.SameOffsetConstraint(17, 18, 0, 1))
 
-    assert(len(m.get_free_variables()) == 5)
+    assert(len(m.get_free_variables()) == 7)
     m.points[17] = Point(0.6, 0.9)
     m.fill_free_constraints()
-    assert(len(m.get_free_variables()) == 7)
+    assert(len(m.get_free_variables()) == 9)
 
     global tunkki
     tunkki = m
@@ -568,7 +568,7 @@ def build_right_side(m):
                                   callback=ess_callback
                                   )
     lm.set_free_variables(res.x)
-    draw_model('ess_sides.svg', m, lm)
+    draw_model('ess_sides2.svg', m, lm)
     print(res.success)
     message = res.message
     if isinstance(message, bytes):
