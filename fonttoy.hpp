@@ -24,6 +24,11 @@ struct Vector;
 class Point final {
 public:
     Point(double x, double y) : x_(x), y_(y) {}
+    Point(const Point &p) : x_(p.x_), y_(p.y_) {}
+    Point(Point &&p) : x_(p.x_), y_(p.y_) {}
+
+    Point &operator=(const Point &o) = delete;
+    Point &operator=(Point &&o) = delete;
 
     Point &operator=(Point &o) = delete;
 
@@ -42,8 +47,11 @@ class Vector final {
 public:
     Vector(double x, double y) : x_(x), y_(y) {}
     explicit Vector(const Point &p) : x_(p.x()), y_(p.y()) {}
+    Vector(const Vector &o) : x_(o.x_), y_(o.y_) {}
+    Vector(Vector &&o) : x_(o.x_), y_(o.y_) {}
 
-    Vector &operator=(Vector &o) = delete;
+    Vector &operator=(const Vector &o) = delete;
+    Vector &operator=(Vector &&o) = delete;
 
     double length() const;
 
