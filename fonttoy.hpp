@@ -25,7 +25,10 @@ class Point final {
 public:
     Point(double x, double y) : x_(x), y_(y) {}
 
+    Point &operator=(Point &o) = delete;
+
     Vector operator-(const Point &other) const;
+    Point operator+(const Vector &v) const;
 
     const double &x() const { return x_; }
     const double &y() const { return y_; }
@@ -38,16 +41,32 @@ private:
 class Vector final {
 public:
     Vector(double x, double y) : x_(x), y_(y) {}
+    explicit Vector(const Point &p) : x_(p.x()), y_(p.y()) {}
+
+    Vector &operator=(Vector &o) = delete;
 
     double length() const;
 
     const double &x() const { return x_; }
     const double &y() const { return y_; }
 
+    double distance(const Point &p) const;
+    double angle() const;
+    double dot(const Vector &other) const;
+    Vector operator*(const double r) const;
+    Vector normalized() const;
+    Vector projected_to(const Vector &target) const;
+
+    Point operator+(const Point &o) const { return o + *this; }
+
+    bool is_numerically_zero() const;
+
 private:
     double x_ = 0.0;
     double y_ = 0.0;
 };
+
+Vector operator*(const double d, const Vector &v);
 
 class Bezier final {
 public:

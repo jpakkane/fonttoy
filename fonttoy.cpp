@@ -20,7 +20,47 @@
 
 Vector Point::operator-(const Point &other) const { return Vector(x_ - other.x_, y_ - other.y_); }
 
+Point Point::operator+(const Vector &v) const { return Point(x_ + v.x(), y_ + v.y()); }
+
 double Vector::length() const { return sqrt(x_ * x_ + y_ * y_); }
+
+double Vector::angle() const { return atan2(x_, y_); }
+
+double Vector::dot(const Vector &other) const { return x_ * other.x_ + y_ * other.y_; }
+
+Vector Vector::operator*(const double r) const { return Vector(r * x_, r * y_); }
+
+double Vector::distance(const Point &p) const {
+    const double dx = x_ - p.x();
+    const double dy = y_ - p.y();
+    return sqrt(dx * dx + dy * dy);
+}
+
+bool Vector::is_numerically_zero() const {
+    if(fabs(x_) < 0.0001 && fabs(y_) < 0.0001) {
+        return true;
+    }
+    return false;
+}
+
+Vector Vector::normalized() const {
+    if(is_numerically_zero()) {
+        return Vector(0.0, 0.0);
+    }
+    auto d = length();
+    return Vector(x_ / d, y_ / d);
+}
+
+Vector Vector::projected_to(const Vector &target) const {
+    if(target.is_numerically_zero()) {
+        return Vector(0.0, 0.0);
+    }
+    const double numerator = dot(target);
+    const double denominator = target.dot(target);
+    return (numerator / denominator) * target;
+}
+
+Vector operator*(const double d, const Vector &v) { return v * d; }
 
 Point Bezier::evaluate(const double t) const {
     double x = pow(1.0 - t, 3.0) * p1.x() + 3.0 * pow(1.0 - t, 2.0) * t * c1.x() +
