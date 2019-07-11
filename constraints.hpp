@@ -1,3 +1,5 @@
+#pragma once
+
 /*
   Copyright (C) 2019 Jussi Pakkanen
 
@@ -15,17 +17,24 @@
   along with this program; if not, see <http://www.gnu.org/licenses/>.
 */
 
-#include <cstdio>
 #include <fonttoy.hpp>
-#include <constraints.hpp>
 #include <vector>
+#include <optional>
 
-int main(int, char **) {
-    std::vector<Vector> v;
-    v.emplace_back(1.0, 2.0);
-    v.push_back({1.1, 2.2});
-    printf("Val: %f.\n", v.back().x());
-    v.pop_back();
-    printf("Val: %f.\n", v.back().x());
-    return 0;
-}
+struct VariableLimits {
+    std::optional<double> min_value;
+    std::optional<double> max_value;
+};
+
+class Constraint {
+public:
+    virtual ~Constraint() = default;
+
+    virtual double calculate_error(const std::vector<Point> &points) const = 0;
+    virtual int num_free_variables() const = 0;
+    virtual void put_free_variables_in(std::vector<double> &points, const int offset) const = 0;
+    virtual int get_free_variables_from(const std::vector<double> &points, const int offset) = 0;
+    virtual void update_model(std::vector<Point> &points) = 0;
+    virtual std::vector<int> determines_points() const = 0;
+    virtual std::vector<VariableLimits> get_limits() const = 0;
+};
