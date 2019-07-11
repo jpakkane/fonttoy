@@ -5,5 +5,4 @@ __pycache__
 .project
 .cproject
 .pydevproject
-*.svg
-
+/proto/*.svg
