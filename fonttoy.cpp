@@ -88,16 +88,16 @@ Point Bezier::evaluate_d2(const double t) const {
 }
 
 Stroke::Stroke(const int num_beziers) : num_beziers(num_beziers) {
-    const int num_points = num_beziers*3 + 1;
+    const int num_points = num_beziers * 3 + 1;
     points.reserve(num_points);
-    for(int i=0; i<num_points; ++i) {
+    for(int i = 0; i < num_points; ++i) {
         points.push_back(Point());
     }
 }
 
 std::vector<double> Stroke::get_free_variables() const {
     std::vector<double> free_variables;
-    for(const auto &c: constraints) {
+    for(const auto &c : constraints) {
         c->append_free_variables_to(free_variables);
     }
     return free_variables;
@@ -105,8 +105,7 @@ std::vector<double> Stroke::get_free_variables() const {
 
 void Stroke::set_free_variables(const std::vector<double> v) {
     int offset = 0;
-    for(const auto &c: constraints) {
+    for(const auto &c : constraints) {
         offset += c->get_free_variables_from(v, offset);
     }
 }
-

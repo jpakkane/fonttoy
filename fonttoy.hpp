@@ -17,8 +17,8 @@
   along with this program; if not, see <http://www.gnu.org/licenses/>.
 */
 
-#include<vector>
-#include<memory>
+#include <vector>
+#include <memory>
 
 struct Vector;
 class Constraint;
