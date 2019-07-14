@@ -17,12 +17,17 @@
   along with this program; if not, see <http://www.gnu.org/licenses/>.
 */
 
+#include<vector>
+#include<memory>
+
 struct Vector;
+class Constraint;
 
 // Points and vectors are immutable.
 
 class Point final {
 public:
+    Point() : x_(0.0), y_(0.0) {}
     Point(double x, double y) : x_(x), y_(y) {}
     Point(const Point &p) : x_(p.x_), y_(p.y_) {}
     Point(Point &&p) : x_(p.x_), y_(p.y_) {}
@@ -86,4 +91,17 @@ public:
 
 private:
     Point p1, c1, c2, p2;
+};
+
+class Stroke final {
+public:
+    explicit Stroke(const int num_beziers);
+
+    std::vector<double> get_free_variables() const;
+    void set_free_variables(const std::vector<double> v);
+
+private:
+    int num_beziers;
+    std::vector<Point> points;
+    std::vector<std::unique_ptr<Constraint>> constraints;
 };

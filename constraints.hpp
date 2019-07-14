@@ -32,7 +32,8 @@ public:
 
     virtual double calculate_error(const std::vector<Point> &points) const = 0;
     virtual int num_free_variables() const = 0;
-    virtual void put_free_variables_in(std::vector<double> &points, const int offset) const = 0;
+    virtual void append_free_variables_to(std::vector<double> &variables) const = 0;
+    virtual int put_free_variables_in(std::vector<double> &points, const int offset) const = 0;
     virtual int get_free_variables_from(const std::vector<double> &points, const int offset) = 0;
     virtual void update_model(std::vector<Point> &points) = 0;
     virtual std::vector<int> determines_points() const = 0;
