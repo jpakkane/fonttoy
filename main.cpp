@@ -104,7 +104,7 @@ void calculate_with_lbfgs() {
     }
 }
 
-int main(int, char **) {
+int main2(int, char **) {
     SvgExporter e;
     std::vector<Vector> v;
     v.emplace_back(1.0, 2.0);
@@ -114,5 +114,44 @@ int main(int, char **) {
     printf("Val: %f.\n", v.back().x());
     calculate_with_lbfgs();
     e.write_svg("test.svg");
+    return 0;
+}
+
+int main(int, char **) {
+    SvgExporter e;
+    Stroke s(6);
+    const double h = 1.0;
+    const double w = 0.7;
+    const double e1 = 0.2;
+    const double e2 = h - e1;
+    const double e3 = 0.27;
+    const double e4 = h - e3;
+    const double r = 0.05;
+
+    // All points first
+    s.add_constraint(std::make_unique<FixedConstraint>(0, Point(r, e1)));
+    s.add_constraint(std::make_unique<FixedConstraint>(3, Point(w / 2, r)));
+    s.add_constraint(std::make_unique<FixedConstraint>(6, Point(w - r, e3)));
+    s.add_constraint(std::make_unique<FixedConstraint>(9, Point(w / 2, h / 2)));
+    s.add_constraint(std::make_unique<FixedConstraint>(12, Point(r, e4)));
+    s.add_constraint(std::make_unique<FixedConstraint>(15, Point(w / 2, h - r)));
+    s.add_constraint(std::make_unique<FixedConstraint>(18, Point(w - r, e2)));
+
+    // Then control points.
+    s.add_constraint(std::make_unique<DirectionConstraint>(3, 2, M_PI));
+    /*
+    s.add_constraint(std::make_unique<MirrorConstraint>(4, 2, 3));
+    s.add_constraint(std::make_unique<DirectionConstraint>(6, 5, 3.0 * math.pi / 2.0));
+    s.add_constraint(std::make_unique<SmoothConstraint>(7, 5, 6));
+    s.add_constraint(std::make_unique<AngleConstraint>(
+        8, 9, (360.0 - 15.0) / 360.0 * 2.0 * M_PI, (360.0 - 1.0) / 360.0 * 2.0 * M_PI));
+    s.add_constraint(std::make_unique<MirrorConstraint>(10, 8, 9));
+    s.add_constraint(std::make_unique<DirectionConstraint>(12, 11, 3.0 * math.pi / 2.0));
+    s.add_constraint(std::make_unique<SmoothConstraint>(13, 11, 12));
+    s.add_constraint(std::make_unique<SameOffsetConstraint>(14, 15, 2, 3));
+    s.add_constraint(std::make_unique<MirrorConstraint>(16, 14, 15));
+    s.add_constraint(std::make_unique<SameOffsetConstraint>(17, 18, 0, 1));
+*/
+    // e.write_svg("ess.svg");
     return 0;
 }

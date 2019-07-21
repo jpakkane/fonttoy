@@ -62,6 +62,7 @@ Vector Vector::projected_to(const Vector &target) const {
 }
 
 Vector operator*(const double d, const Vector &v) { return v * d; }
+Vector operator*(const double d, Vector &&v) { return v*d; }
 
 Point Bezier::evaluate(const double t) const {
     double x = pow(1.0 - t, 3.0) * p1.x() + 3.0 * pow(1.0 - t, 2.0) * t * c1.x() +
@@ -94,6 +95,8 @@ Stroke::Stroke(const int num_beziers) : num_beziers(num_beziers) {
         points.push_back(Point());
     }
 }
+
+void Stroke::add_constraint(std::unique_ptr<Constraint> c) { constraints.push_back(std::move(c)); }
 
 std::vector<double> Stroke::get_free_variables() const {
     std::vector<double> free_variables;

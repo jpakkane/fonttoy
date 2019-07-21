@@ -96,16 +96,26 @@ void SvgExporter::draw_example() {
     Point c2(0.9, -0.2);
     Point p2(1, 0);
     draw_bezier(p1, c1, c2, p2, true);
-
 }
 
-void SvgExporter::draw_bezier(const Point &p1, const Point &c1, const Point &c2, const Point &p2, bool draw_controls) {
+void SvgExporter::draw_bezier(
+    const Point &p1, const Point &c1, const Point &c2, const Point &p2, bool draw_controls) {
     const int buf_size = 1024;
     char buf[buf_size];
     double stroke_width = 0.002;
     const char *stroke = "black";
     const char *fill = "none";
-    snprintf(buf, buf_size, "M%f %f C %f %f %f %f %f %f", p1.x(), p1.y(), c1.x(), c1.y(), c2.x(), c2.y(), p2.x(), p2.y());
+    snprintf(buf,
+             buf_size,
+             "M%f %f C %f %f %f %f %f %f",
+             p1.x(),
+             p1.y(),
+             c1.x(),
+             c1.y(),
+             c2.x(),
+             c2.y(),
+             p2.x(),
+             p2.y());
     auto b = doc.NewElement("path");
     b->SetAttribute("d", buf);
     b->SetAttribute("stroke-width", stroke_width);
@@ -127,9 +137,17 @@ void SvgExporter::draw_cross(double x, double y) {
     const int buf_size = 1024;
     char buf[buf_size];
     const double cross_size = 0.01;
-    snprintf(buf, buf_size, "M %f %f L %f %f M %f %f L %f %f",
-            x-cross_size, y-cross_size, x+cross_size, y+cross_size,
-            x-cross_size, y+cross_size, x+cross_size, y-cross_size);
+    snprintf(buf,
+             buf_size,
+             "M %f %f L %f %f M %f %f L %f %f",
+             x - cross_size,
+             y - cross_size,
+             x + cross_size,
+             y + cross_size,
+             x - cross_size,
+             y + cross_size,
+             x + cross_size,
+             y - cross_size);
     auto c = doc.NewElement("path");
     c->SetAttribute("d", buf);
     c->SetAttribute("stroke-width", 0.002);

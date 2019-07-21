@@ -39,3 +39,43 @@ public:
     virtual std::vector<int> determines_points() const = 0;
     virtual std::vector<VariableLimits> get_limits() const = 0;
 };
+
+class FixedConstraint final : public Constraint {
+
+public:
+    FixedConstraint(int point_index, Point p) : point_index(point_index), p(p) {}
+
+    double calculate_error(const std::vector<Point> &points) const override;
+    int num_free_variables() const override;
+    void append_free_variables_to(std::vector<double> &variables) const override;
+    int put_free_variables_in(std::vector<double> &points, const int offset) const override;
+    int get_free_variables_from(const std::vector<double> &points, const int offset) override;
+    void update_model(std::vector<Point> &points) override;
+    std::vector<int> determines_points() const override;
+    std::vector<VariableLimits> get_limits() const override;
+
+private:
+    int point_index;
+    Point p;
+};
+
+class DirectionConstraint final : public Constraint {
+
+public:
+    DirectionConstraint(int from_point_index, int to_point_index, double angle);
+
+    double calculate_error(const std::vector<Point> &points) const override;
+    int num_free_variables() const override;
+    void append_free_variables_to(std::vector<double> &variables) const override;
+    int put_free_variables_in(std::vector<double> &points, const int offset) const override;
+    int get_free_variables_from(const std::vector<double> &points, const int offset) override;
+    void update_model(std::vector<Point> &points) override;
+    std::vector<int> determines_points() const override;
+    std::vector<VariableLimits> get_limits() const override;
+
+private:
+    int from_point_index;
+    int to_point_index;
+    double angle;
+    double distance;
+};

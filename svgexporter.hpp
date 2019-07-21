@@ -37,7 +37,11 @@ public:
 
     void draw_horizontal_guide(double y, const char *txt);
 
-    void draw_bezier(const Point &p1, const Point &c1, const Point &c2, const Point &p2, bool draw_controls=false);
+    void draw_bezier(const Point &p1,
+                     const Point &c1,
+                     const Point &c2,
+                     const Point &p2,
+                     bool draw_controls = false);
 
     void draw_circle(double x, double y, double radius);
 

@@ -23,7 +23,7 @@
 struct Vector;
 class Constraint;
 
-// Points and vectors are immutable.
+// Points and vectors are immutable but assignable
 
 class Point final {
 public:
@@ -32,10 +32,17 @@ public:
     Point(const Point &p) : x_(p.x_), y_(p.y_) {}
     Point(Point &&p) : x_(p.x_), y_(p.y_) {}
 
-    Point &operator=(const Point &o) = delete;
-    Point &operator=(Point &&o) = delete;
+    const Point &operator=(const Point &o) {
+        x_ = o.x_;
+        y_ = o.y_;
+        return *this;
+    }
 
-    Point &operator=(Point &o) = delete;
+    const Point &operator=(Point &&o) {
+        x_ = o.x_;
+        y_ = o.y_;
+        return *this;
+    }
 
     Vector operator-(const Point &other) const;
     Point operator+(const Vector &v) const;
@@ -55,7 +62,12 @@ public:
     Vector(const Vector &o) : x_(o.x_), y_(o.y_) {}
     Vector(Vector &&o) : x_(o.x_), y_(o.y_) {}
 
-    Vector &operator=(const Vector &o) = delete;
+    const Vector &operator=(const Vector &o) {
+        x_ = o.x_;
+        y_ = o.y_;
+        return *this;
+    }
+
     Vector &operator=(Vector &&o) = delete;
 
     double length() const;
@@ -71,6 +83,7 @@ public:
     Vector projected_to(const Vector &target) const;
 
     Point operator+(const Point &o) const { return o + *this; }
+    Point operator+(Point &&o) const { return o + *this; }
 
     bool is_numerically_zero() const;
 
@@ -80,6 +93,7 @@ private:
 };
 
 Vector operator*(const double d, const Vector &v);
+Vector operator*(const double d, Vector &&v);
 
 class Bezier final {
 public:
@@ -99,6 +113,7 @@ public:
 
     std::vector<double> get_free_variables() const;
     void set_free_variables(const std::vector<double> v);
+    void add_constraint(std::unique_ptr<Constraint> c);
 
 private:
     int num_beziers;
