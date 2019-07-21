@@ -26,15 +26,15 @@
 
 static_assert(sizeof(lbfgsfloatval_t) == sizeof(double));
 
-typedef double (*fptr)(const double*, const int);
+typedef double (*fptr)(const double *, const int);
 
 void estimate_derivative(fptr f, const double *x, double *g, double f0, double *h, double N) {
     std::vector<double> x0(N);
     int i;
-    for(int i=0; i<N; i++) {
+    for(int i = 0; i < N; i++) {
         x0[i] = x[i];
     }
-    for(i=0; i<N; i++) {
+    for(i = 0; i < N; i++) {
         double old_v = x0[i];
         x0[i] += h[i];
         double dx = h[i];
@@ -44,12 +44,10 @@ void estimate_derivative(fptr f, const double *x, double *g, double f0, double *
     }
 }
 
-double maxd(const double d1, const double d2) {
-    return d1 > d2 ? d1 : d2;
-}
+double maxd(const double d1, const double d2) { return d1 > d2 ? d1 : d2; }
 
 void compute_absolute_step(double rel_step, const double *x, double *h, const int N) {
-    for(int i=0; i<N; ++i) {
+    for(int i = 0; i < N; ++i) {
         double sign_x = x[i] >= 0 ? 1.0 : -1.0;
         h[i] = rel_step * sign_x * maxd(1.0, fabs(x[i]));
     }
@@ -57,13 +55,12 @@ void compute_absolute_step(double rel_step, const double *x, double *h, const in
 
 double fn(const double *x, const int n) {
     double result = 0.0;
-    for(int i=0; i<n; i++) {
+    for(int i = 0; i < n; i++) {
         const double curx = x[i];
-        result += curx*curx - curx;
+        result += curx * curx - curx;
     }
     return result;
 }
-
 
 static lbfgsfloatval_t evaluate(void *instance,
                                 const lbfgsfloatval_t *x,
@@ -79,19 +76,16 @@ static lbfgsfloatval_t evaluate(void *instance,
     return fx;
 }
 
-static int progress(
-    void *instance,
-    const lbfgsfloatval_t *x,
-    const lbfgsfloatval_t *g,
-    const lbfgsfloatval_t fx,
-    const lbfgsfloatval_t xnorm,
-    const lbfgsfloatval_t gnorm,
-    const lbfgsfloatval_t step,
-    int n,
-    int k,
-    int ls
-    )
-{
+static int progress(void *instance,
+                    const lbfgsfloatval_t *x,
+                    const lbfgsfloatval_t *g,
+                    const lbfgsfloatval_t fx,
+                    const lbfgsfloatval_t xnorm,
+                    const lbfgsfloatval_t gnorm,
+                    const lbfgsfloatval_t step,
+                    int n,
+                    int k,
+                    int ls) {
     return 0;
 }
 
@@ -105,12 +99,13 @@ void calculate_with_lbfgs() {
 
     printf("L-BFGS optimization terminated with status code = %d\n", ret);
     printf("Value: %f\nParameters:\n", fx);
-    for(const auto &p: params) {
+    for(const auto &p : params) {
         printf(" %f\n", p);
     }
 }
 
 int main(int, char **) {
+    SvgExporter e;
     std::vector<Vector> v;
     v.emplace_back(1.0, 2.0);
     v.push_back({1.1, 2.2});
@@ -118,6 +113,6 @@ int main(int, char **) {
     v.pop_back();
     printf("Val: %f.\n", v.back().x());
     calculate_with_lbfgs();
-    write_svg("test.svg");
+    e.write_svg("test.svg");
     return 0;
 }

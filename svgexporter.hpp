@@ -17,4 +17,29 @@
   along with this program; if not, see <http://www.gnu.org/licenses/>.
 */
 
-void write_svg(const char *ofname);
+#include <tinyxml2.h>
+
+class SvgExporter final {
+public:
+    SvgExporter();
+    void write_svg(const char *ofname);
+
+    void draw_line(double x1,
+                   double y1,
+                   double x2,
+                   double y2,
+                   const char *stroke,
+                   double stroke_width,
+                   const char *dash);
+
+    void draw_text(double x, double y, double size, const char *msg);
+
+    void draw_horizontal_guide(double y, const char *txt);
+
+private:
+    void setup_canvas();
+
+    tinyxml2::XMLDocument doc;
+    tinyxml2::XMLElement *root;
+    tinyxml2::XMLElement *canvas;
+};
