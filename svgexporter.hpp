@@ -18,6 +18,7 @@
 */
 
 #include <tinyxml2.h>
+#include <fonttoy.hpp>
 
 class SvgExporter final {
 public:
@@ -36,8 +37,15 @@ public:
 
     void draw_horizontal_guide(double y, const char *txt);
 
+    void draw_bezier(const Point &p1, const Point &c1, const Point &c2, const Point &p2, bool draw_controls=false);
+
+    void draw_circle(double x, double y, double radius);
+
+    void draw_cross(double x, double y);
+
 private:
     void setup_canvas();
+    void draw_example();
 
     tinyxml2::XMLDocument doc;
     tinyxml2::XMLElement *root;

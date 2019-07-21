@@ -21,7 +21,10 @@
 
 using namespace tinyxml2;
 
-SvgExporter::SvgExporter() { setup_canvas(); }
+SvgExporter::SvgExporter() {
+    setup_canvas();
+    draw_example();
+}
 
 void SvgExporter::setup_canvas() {
     root = doc.NewElement("svg");
@@ -85,6 +88,61 @@ void SvgExporter::draw_line(double x1,
         l->SetAttribute("stroke-dasharray", dash);
     }
     canvas->InsertEndChild(l);
+}
+
+void SvgExporter::draw_example() {
+    Point p1(0, 0);
+    Point c1(0.2, 0.8);
+    Point c2(0.9, -0.2);
+    Point p2(1, 0);
+    draw_bezier(p1, c1, c2, p2, true);
+
+}
+
+void SvgExporter::draw_bezier(const Point &p1, const Point &c1, const Point &c2, const Point &p2, bool draw_controls) {
+    const int buf_size = 1024;
+    char buf[buf_size];
+    double stroke_width = 0.002;
+    const char *stroke = "black";
+    const char *fill = "none";
+    snprintf(buf, buf_size, "M%f %f C %f %f %f %f %f %f", p1.x(), p1.y(), c1.x(), c1.y(), c2.x(), c2.y(), p2.x(), p2.y());
+    auto b = doc.NewElement("path");
+    b->SetAttribute("d", buf);
+    b->SetAttribute("stroke-width", stroke_width);
+    b->SetAttribute("stroke", stroke);
+    b->SetAttribute("fill", fill);
+    canvas->InsertEndChild(b);
+
+    if(draw_controls) {
+        draw_line(p1.x(), p1.y(), c1.x(), c1.y(), "black", 0.001, "0.01,0.01");
+        draw_line(p2.x(), p2.y(), c2.x(), c2.y(), "black", 0.001, "0.01,0.01");
+        draw_circle(p1.x(), p1.y(), 0.01);
+        draw_circle(p2.x(), p2.y(), 0.01);
+        draw_cross(c1.x(), c1.y());
+        draw_cross(c2.x(), c2.y());
+    }
+}
+
+void SvgExporter::draw_cross(double x, double y) {
+    const int buf_size = 1024;
+    char buf[buf_size];
+    const double cross_size = 0.01;
+    snprintf(buf, buf_size, "M %f %f L %f %f M %f %f L %f %f",
+            x-cross_size, y-cross_size, x+cross_size, y+cross_size,
+            x-cross_size, y+cross_size, x+cross_size, y-cross_size);
+    auto c = doc.NewElement("path");
+    c->SetAttribute("d", buf);
+    c->SetAttribute("stroke-width", 0.002);
+    c->SetAttribute("stroke", "black");
+    canvas->InsertEndChild(c);
+}
+
+void SvgExporter::draw_circle(double x, double y, double radius) {
+    auto c = doc.NewElement("circle");
+    c->SetAttribute("cx", x);
+    c->SetAttribute("cy", y);
+    c->SetAttribute("r", radius);
+    canvas->InsertEndChild(c);
 }
 
 void SvgExporter::draw_text(double x, double y, double size, const char *msg) {
