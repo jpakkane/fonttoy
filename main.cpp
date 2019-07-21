@@ -18,6 +18,7 @@
 #include <cstdio>
 #include <fonttoy.hpp>
 #include <constraints.hpp>
+#include <svgexporter.hpp>
 #include <vector>
 #include <lbfgs.h>
 #include <cassert>
@@ -117,5 +118,6 @@ int main(int, char **) {
     v.pop_back();
     printf("Val: %f.\n", v.back().x());
     calculate_with_lbfgs();
+    write_svg("test.svg");
     return 0;
 }
