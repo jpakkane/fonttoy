@@ -27,5 +27,19 @@ void write_svg(const char *ofname) {
     root->SetAttribute("width", "1200px");
     root->SetAttribute("height", "1400px");
     doc.InsertFirstChild(root);
+    auto bg = doc.NewElement("rect");
+    bg->SetAttribute("width", "1200px");
+    bg->SetAttribute("height", "1400px");
+    bg->SetAttribute("fill", "white");
+    root->InsertFirstChild(bg);
+    auto t = doc.NewElement("g");
+    t->SetAttribute("transform", "translate(100, 1100)");
+    root->InsertEndChild(t);
+    auto t2 = doc.NewElement("g");
+    t2->SetAttribute("transfom", "matrix(1, 0, 0, -1, 0, 0)");
+    t->InsertEndChild(t2);
+    auto canvas = doc.NewElement("g");
+    canvas->SetAttribute("transfom", "scale(1000)");
+    t2->InsertEndChild(canvas);
     doc.SaveFile(ofname);
 }
