@@ -45,6 +45,7 @@ public:
     }
 
     Vector operator-(const Point &other) const;
+    Point operator-(const Vector &v) const;
     Point operator+(const Vector &v) const;
 
     const double &x() const { return x_; }

@@ -114,3 +114,47 @@ std::vector<VariableLimits> MirrorConstraint::get_limits() const {
     std::vector<VariableLimits> l;
     return l;
 }
+
+SmoothConstraint::SmoothConstraint(int this_control_index,
+                                   int other_control_index,
+                                   int curve_point_index)
+    : this_control_index(this_control_index), other_control_index(other_control_index),
+      curve_point_index(curve_point_index) {
+    alpha = 1.0;
+}
+
+double SmoothConstraint::calculate_error(const std::vector<Point> &) const { return 0.0; }
+
+int SmoothConstraint::num_free_variables() const { return 1; }
+
+void SmoothConstraint::append_free_variables_to(std::vector<double> &variables) const {
+    variables.push_back(alpha);
+}
+
+int SmoothConstraint::put_free_variables_in(std::vector<double> &points, const int offset) const {
+    points[offset] = alpha;
+    return 1;
+}
+
+int SmoothConstraint::get_free_variables_from(const std::vector<double> &points, const int offset) {
+    alpha = points[offset];
+    return 1;
+}
+
+void SmoothConstraint::update_model(std::vector<Point> &points) const {
+    Vector delta = points[other_control_index] - points[curve_point_index];
+    points[this_control_index] = points[curve_point_index] - delta * alpha;
+}
+
+std::vector<int> SmoothConstraint::determines_points() const {
+    std::vector<int> p;
+    p.push_back(this_control_index);
+    return p;
+}
+
+std::vector<VariableLimits> SmoothConstraint::get_limits() const {
+    VariableLimits l{0.01, {}};
+    std::vector<VariableLimits> result;
+    result.push_back(l);
+    return result;
+}

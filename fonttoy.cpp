@@ -23,6 +23,8 @@ Vector Point::operator-(const Point &other) const { return Vector(x_ - other.x_,
 
 Point Point::operator+(const Vector &v) const { return Point(x_ + v.x(), y_ + v.y()); }
 
+Point Point::operator-(const Vector &v) const { return Point(x_ - v.x(), y_ - v.y()); }
+
 double Vector::length() const { return sqrt(x_ * x_ + y_ * y_); }
 
 double Vector::angle() const { return atan2(x_, y_); }

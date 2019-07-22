@@ -99,3 +99,22 @@ private:
     int from_point_index;
     int mirror_point_index;
 };
+
+class SmoothConstraint final : public Constraint {
+
+public:
+    SmoothConstraint(int this_control_index, int other_control_index, int curve_point_index);
+
+    double calculate_error(const std::vector<Point> &points) const override;
+    int num_free_variables() const override;
+    void append_free_variables_to(std::vector<double> &variables) const override;
+    int put_free_variables_in(std::vector<double> &points, const int offset) const override;
+    int get_free_variables_from(const std::vector<double> &points, const int offset) override;
+    void update_model(std::vector<Point> &points) const override;
+    std::vector<int> determines_points() const override;
+    std::vector<VariableLimits> get_limits() const override;
+
+private:
+    int this_control_index, other_control_index, curve_point_index;
+    double alpha;
+};

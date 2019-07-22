@@ -67,6 +67,8 @@ static lbfgsfloatval_t evaluate(void *instance,
                                 lbfgsfloatval_t *g,
                                 const int n,
                                 const lbfgsfloatval_t step) {
+    (void)instance;
+    (void)step;
     const double rel_step = 0.000000001;
     double fx = 0.0;
     std::vector<double> h(n);
@@ -140,9 +142,9 @@ int main(int, char **) {
     // Then control points.
     s.add_constraint(std::make_unique<DirectionConstraint>(3, 2, M_PI));
     s.add_constraint(std::make_unique<MirrorConstraint>(4, 2, 3));
-    /*
-    s.add_constraint(std::make_unique<DirectionConstraint>(6, 5, 3.0 * math.pi / 2.0));
+    s.add_constraint(std::make_unique<DirectionConstraint>(6, 5, 3.0 * M_PI / 2.0));
     s.add_constraint(std::make_unique<SmoothConstraint>(7, 5, 6));
+    /*
     s.add_constraint(std::make_unique<AngleConstraint>(
         8, 9, (360.0 - 15.0) / 360.0 * 2.0 * M_PI, (360.0 - 1.0) / 360.0 * 2.0 * M_PI));
     s.add_constraint(std::make_unique<MirrorConstraint>(10, 8, 9));
