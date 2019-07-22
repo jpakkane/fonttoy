@@ -48,8 +48,8 @@ public:
     double calculate_error(const std::vector<Point> &points) const override;
     int num_free_variables() const override;
     void append_free_variables_to(std::vector<double> &variables) const override;
-    int put_free_variables_in(std::vector<double> &points, const int offset) const override;
-    int get_free_variables_from(const std::vector<double> &points, const int offset) override;
+    int put_free_variables_in(std::vector<double> &variables, const int offset) const override;
+    int get_free_variables_from(const std::vector<double> &variables, const int offset) override;
     void update_model(std::vector<Point> &points) const override;
     std::vector<int> determines_points() const override;
     std::vector<VariableLimits> get_limits() const override;
@@ -67,8 +67,8 @@ public:
     double calculate_error(const std::vector<Point> &points) const override;
     int num_free_variables() const override;
     void append_free_variables_to(std::vector<double> &variables) const override;
-    int put_free_variables_in(std::vector<double> &points, const int offset) const override;
-    int get_free_variables_from(const std::vector<double> &points, const int offset) override;
+    int put_free_variables_in(std::vector<double> &variables, const int offset) const override;
+    int get_free_variables_from(const std::vector<double> &variables, const int offset) override;
     void update_model(std::vector<Point> &points) const override;
     std::vector<int> determines_points() const override;
     std::vector<VariableLimits> get_limits() const override;
@@ -88,8 +88,8 @@ public:
     double calculate_error(const std::vector<Point> &points) const override;
     int num_free_variables() const override;
     void append_free_variables_to(std::vector<double> &variables) const override;
-    int put_free_variables_in(std::vector<double> &points, const int offset) const override;
-    int get_free_variables_from(const std::vector<double> &points, const int offset) override;
+    int put_free_variables_in(std::vector<double> &variables, const int offset) const override;
+    int get_free_variables_from(const std::vector<double> &variables, const int offset) override;
     void update_model(std::vector<Point> &points) const override;
     std::vector<int> determines_points() const override;
     std::vector<VariableLimits> get_limits() const override;
@@ -108,8 +108,8 @@ public:
     double calculate_error(const std::vector<Point> &points) const override;
     int num_free_variables() const override;
     void append_free_variables_to(std::vector<double> &variables) const override;
-    int put_free_variables_in(std::vector<double> &points, const int offset) const override;
-    int get_free_variables_from(const std::vector<double> &points, const int offset) override;
+    int put_free_variables_in(std::vector<double> &variables, const int offset) const override;
+    int get_free_variables_from(const std::vector<double> &variables, const int offset) override;
     void update_model(std::vector<Point> &points) const override;
     std::vector<int> determines_points() const override;
     std::vector<VariableLimits> get_limits() const override;
@@ -128,8 +128,8 @@ public:
     double calculate_error(const std::vector<Point> &points) const override;
     int num_free_variables() const override;
     void append_free_variables_to(std::vector<double> &variables) const override;
-    int put_free_variables_in(std::vector<double> &points, const int offset) const override;
-    int get_free_variables_from(const std::vector<double> &points, const int offset) override;
+    int put_free_variables_in(std::vector<double> &variables, const int offset) const override;
+    int get_free_variables_from(const std::vector<double> &variables, const int offset) override;
     void update_model(std::vector<Point> &points) const override;
     std::vector<int> determines_points() const override;
     std::vector<VariableLimits> get_limits() const override;

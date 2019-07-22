@@ -54,15 +54,15 @@ void DirectionConstraint::append_free_variables_to(std::vector<double> &variable
     variables.push_back(distance);
 }
 
-int DirectionConstraint::put_free_variables_in(std::vector<double> &points,
+int DirectionConstraint::put_free_variables_in(std::vector<double> &variables,
                                                const int offset) const {
-    points[offset] = distance;
+    variables[offset] = distance;
     return 1;
 }
 
-int DirectionConstraint::get_free_variables_from(const std::vector<double> &points,
+int DirectionConstraint::get_free_variables_from(const std::vector<double> &variables,
                                                  const int offset) {
-    distance = points[offset];
+    distance = variables[offset];
     return 1;
 }
 
@@ -131,13 +131,13 @@ void SmoothConstraint::append_free_variables_to(std::vector<double> &variables) 
     variables.push_back(alpha);
 }
 
-int SmoothConstraint::put_free_variables_in(std::vector<double> &points, const int offset) const {
-    points[offset] = alpha;
+int SmoothConstraint::put_free_variables_in(std::vector<double> &variables, const int offset) const {
+    variables[offset] = alpha;
     return 1;
 }
 
-int SmoothConstraint::get_free_variables_from(const std::vector<double> &points, const int offset) {
-    alpha = points[offset];
+int SmoothConstraint::get_free_variables_from(const std::vector<double> &variables, const int offset) {
+    alpha = variables[offset];
     return 1;
 }
 
@@ -178,15 +178,15 @@ void AngleConstraint::append_free_variables_to(std::vector<double> &variables) c
     variables.push_back(distance);
 }
 
-int AngleConstraint::put_free_variables_in(std::vector<double> &points, const int offset) const {
-    points[offset] = angle;
-    points[offset + 1] = distance;
+int AngleConstraint::put_free_variables_in(std::vector<double> &variables, const int offset) const {
+    variables[offset] = angle;
+    variables[offset + 1] = distance;
     return 2;
 }
 
-int AngleConstraint::get_free_variables_from(const std::vector<double> &points, const int offset) {
-    angle = points[offset];
-    distance = points[offset];
+int AngleConstraint::get_free_variables_from(const std::vector<double> &variables, const int offset) {
+    angle = variables[offset];
+    distance = variables[offset];
     return 2;
 }
 
