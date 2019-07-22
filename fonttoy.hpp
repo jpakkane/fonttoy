@@ -19,9 +19,15 @@
 
 #include <vector>
 #include <memory>
+#include <optional>
 
 struct Vector;
 class Constraint;
+
+struct VariableLimits {
+    std::optional<double> min_value;
+    std::optional<double> max_value;
+};
 
 // Points and vectors are immutable but assignable
 
@@ -103,8 +109,9 @@ public:
     Bezier(Point p1, Point c1, Point c2, Point p2) : p1(p1), c1(c1), c2(c2), p2(p2) {}
 
     Point evaluate(const double t) const;
-    Point evaluate_d1(const double t) const;
-    Point evaluate_d2(const double t) const;
+    Vector evaluate_d1(const double t) const;
+    Vector evaluate_d2(const double t) const;
+    Vector evaluate_left_normal(const double t) const;
 
 private:
     Point p1, c1, c2, p2;
@@ -121,7 +128,13 @@ public:
     double calculate_value_for(const std::vector<double> &vars);
 
 private:
+    void update_model();
+    double calculate_2nd_der() const;
+    double calculate_limit_errors(const std::vector<double> &vars) const;
+    std::vector<Bezier> build_beziers() const;
+
     int num_beziers;
     std::vector<Point> points;
     std::vector<std::unique_ptr<Constraint>> constraints;
+    std::vector<VariableLimits> limits;
 };

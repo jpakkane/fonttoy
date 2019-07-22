@@ -19,12 +19,6 @@
 
 #include <fonttoy.hpp>
 #include <vector>
-#include <optional>
-
-struct VariableLimits {
-    std::optional<double> min_value;
-    std::optional<double> max_value;
-};
 
 class Constraint {
 public:

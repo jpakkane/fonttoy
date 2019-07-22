@@ -493,7 +493,6 @@ class Stroke:
         return total_2nd_nor
 
     def evaluate_2nd_der_normal2(self):
-        total_2nd_nor = 0.0
         beziers = []
         for b in self.beziers():
             beziers.append(b)

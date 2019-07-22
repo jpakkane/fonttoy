@@ -18,6 +18,7 @@
 #include <fonttoy.hpp>
 #include <constraints.hpp>
 #include <cmath>
+#include <cassert>
 
 Vector Point::operator-(const Point &other) const { return Vector(x_ - other.x_, y_ - other.y_); }
 
@@ -74,20 +75,26 @@ Point Bezier::evaluate(const double t) const {
     return Point(x, y);
 }
 
-Point Bezier::evaluate_d1(const double t) const {
+Vector Bezier::evaluate_d1(const double t) const {
     double x = 3.0 * pow(1.0 - t, 2) * (c1.x() - p1.x()) + 6.0 * (1.0 - t) * t * (c2.x() - c1.x()) +
                3.0 * t * t * (p2.x() - c2.x());
     double y = 3.0 * pow(1.0 - t, 2) * (c1.y() - p1.y()) + 6.0 * (1.0 - t) * t * (c2.y() - c1.y()) +
                3.0 * t * t * (p2.y() - c2.y());
-    return Point(x, y);
+    return Vector(x, y);
 }
 
-Point Bezier::evaluate_d2(const double t) const {
+Vector Bezier::evaluate_d2(const double t) const {
     double x = 6.0 * (1.0 - t) * (c2.x() - 2.0 * c1.x() + p1.x()) +
                6.0 * t * (p2.x() - 2.0 * c2.x() + p1.x());
     double y = 6.0 * (1.0 - t) * (c2.y() - 2.0 * c1.y() + p1.y()) +
                6.0 * t * (p2.y() - 2.0 * c2.y() + p1.y());
-    return Point(x, y);
+    return Vector(x, y);
+}
+
+Vector Bezier::evaluate_left_normal(const double t) const {
+    auto d1 = evaluate_d1(t);
+    Vector dn(-d1.y(), d1.x());
+    return dn.normalized();
 }
 
 Stroke::Stroke(const int num_beziers) : num_beziers(num_beziers) {
@@ -98,7 +105,12 @@ Stroke::Stroke(const int num_beziers) : num_beziers(num_beziers) {
     }
 }
 
-void Stroke::add_constraint(std::unique_ptr<Constraint> c) { constraints.push_back(std::move(c)); }
+void Stroke::add_constraint(std::unique_ptr<Constraint> c) {
+    constraints.push_back(std::move(c));
+    for(auto &&l : constraints.back()->get_limits()) {
+        limits.emplace_back(l);
+    }
+}
 
 std::vector<double> Stroke::get_free_variables() const {
     std::vector<double> free_variables;
@@ -117,6 +129,67 @@ void Stroke::set_free_variables(const std::vector<double> &v) {
 
 double Stroke::calculate_value_for(const std::vector<double> &vars) {
     set_free_variables(vars);
-    //update_model();
-    return 0.0; //calculate_something();
+    update_model();
+    return calculate_2nd_der() + calculate_limit_errors(vars);
+}
+
+void Stroke::update_model() {
+    // FIXME: add topological sorting here.
+    for(auto &c : constraints) {
+        c->update_model(points);
+    }
+}
+
+double Stroke::calculate_2nd_der() const {
+    auto beziers = build_beziers();
+    double i = 0.0;
+    double result = 0.0;
+    const double delta = 0.01;
+    const double cutoff = beziers.size();
+    while(i <= cutoff) {
+        const int bezier_ind = int(i);
+        const double bezier_i = fmod(i, 1.0);
+        const auto &cur_b = beziers[bezier_ind];
+        const Vector h = cur_b.evaluate_d2(bezier_i);
+        const Vector left_n = cur_b.evaluate_left_normal(i);
+        double left_n_length = left_n.length(); // Should be one, but zero in the degenerate case.
+        if(left_n_length != 0) {
+            assert(fabs(left_n_length - 1.0) < 0.0001);
+            double projected = h.dot(left_n) / left_n.length();
+            result = std::max(fabs(projected), result);
+        }
+        i += delta;
+    }
+    return result;
+}
+
+double Stroke::calculate_limit_errors(const std::vector<double> &vars) const {
+    assert(limits.size() == vars.size());
+    double error = 0.0;
+    auto err_func = [](const double a, const double b) {
+        const double delta = fabs(a - b);
+        return 10000.0 * delta * delta;
+    };
+    for(size_t i = 0; i < limits.size(); i++) {
+        const auto &v = vars[i];
+        const auto &l = limits[i];
+        if(l.min_value && v < *l.min_value) {
+            error += err_func(v, *l.min_value);
+        }
+        if(l.max_value && v > *l.max_value) {
+            error += err_func(v, *l.max_value);
+        }
+    }
+    return error;
+}
+
+std::vector<Bezier> Stroke::build_beziers() const {
+    std::vector<Bezier> b;
+    b.reserve(num_beziers);
+    size_t i = 3;
+    while(i < points.size()) {
+        b.emplace_back(points[i - 3], points[i - 2], points[i - 1], points[i]);
+        i += 3;
+    }
+    return b;
 }

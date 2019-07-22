@@ -119,7 +119,6 @@ int main2(int, char **) {
     return 0;
 }
 
-
 struct OptimizationData {
     Stroke *s;
     std::vector<double> variables;
@@ -135,7 +134,10 @@ std::vector<double> compute_absolute_step(double rel_step, const std::vector<dou
     return h;
 }
 
-std::vector<double> estimate_derivative(Stroke *s, const std::vector<double> &x, double f0, const std::vector<double> &h) {
+std::vector<double> estimate_derivative(Stroke *s,
+                                        const std::vector<double> &x,
+                                        double f0,
+                                        const std::vector<double> &h) {
     std::vector<double> g(x.size());
     std::vector<double> x0 = x;
     for(size_t i = 0; i < x.size(); i++) {
@@ -149,21 +151,20 @@ std::vector<double> estimate_derivative(Stroke *s, const std::vector<double> &x,
     return g;
 }
 
-
 static lbfgsfloatval_t evaluate_model(void *instance,
-                                const lbfgsfloatval_t *x,
-                                lbfgsfloatval_t *g,
-                                const int n,
-                                const lbfgsfloatval_t step) {
-    auto s = reinterpret_cast<Stroke*>(instance);
+                                      const lbfgsfloatval_t *x,
+                                      lbfgsfloatval_t *g,
+                                      const int n,
+                                      const lbfgsfloatval_t step) {
+    auto s = reinterpret_cast<Stroke *>(instance);
     (void)step;
     const double rel_step = 0.000000001;
     double fx = 0.0;
-    std::vector<double> curx(x, x+n);
+    std::vector<double> curx(x, x + n);
     fx = s->calculate_value_for(curx);
     auto curh = compute_absolute_step(rel_step, curx);
     auto g_est = estimate_derivative(s, curx, fx, curh);
-    for(int i=0; i<n; i++) {
+    for(int i = 0; i < n; i++) {
         g[i] = g_est[i];
     }
     return fx;
@@ -176,8 +177,10 @@ void optimize(Stroke *s) {
 
     lbfgs_parameter_t param;
     lbfgs_parameter_init(&param);
-    int ret = lbfgs(variables.size(), &variables[0], &final_result, evaluate_model, nullptr, &s, &param);
+    int ret =
+        lbfgs(variables.size(), &variables[0], &final_result, evaluate_model, nullptr, &s, &param);
     printf("Exit value: %d\n", ret);
+    // insert final values back in the stroke here.
 }
 
 int main(int, char **) {
