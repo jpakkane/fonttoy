@@ -108,9 +108,15 @@ std::vector<double> Stroke::get_free_variables() const {
     return free_variables;
 }
 
-void Stroke::set_free_variables(const std::vector<double> v) {
+void Stroke::set_free_variables(const std::vector<double> &v) {
     int offset = 0;
     for(const auto &c : constraints) {
         offset += c->get_free_variables_from(v, offset);
     }
+}
+
+double Stroke::calculate_value_for(const std::vector<double> &vars) {
+    set_free_variables(vars);
+    //update_model();
+    return 0.0; //calculate_something();
 }

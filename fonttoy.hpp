@@ -115,8 +115,10 @@ public:
     explicit Stroke(const int num_beziers);
 
     std::vector<double> get_free_variables() const;
-    void set_free_variables(const std::vector<double> v);
+    void set_free_variables(const std::vector<double> &v);
     void add_constraint(std::unique_ptr<Constraint> c);
+
+    double calculate_value_for(const std::vector<double> &vars);
 
 private:
     int num_beziers;

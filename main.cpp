@@ -119,6 +119,67 @@ int main2(int, char **) {
     return 0;
 }
 
+
+struct OptimizationData {
+    Stroke *s;
+    std::vector<double> variables;
+};
+
+std::vector<double> compute_absolute_step(double rel_step, const std::vector<double> &x) {
+    std::vector<double> h;
+    h.reserve(x.size());
+    for(size_t i = 0; i < x.size(); ++i) {
+        double sign_x = x[i] >= 0 ? 1.0 : -1.0;
+        h.push_back(rel_step * sign_x * maxd(1.0, fabs(x[i])));
+    }
+    return h;
+}
+
+std::vector<double> estimate_derivative(Stroke *s, const std::vector<double> &x, double f0, const std::vector<double> &h) {
+    std::vector<double> g(x.size());
+    std::vector<double> x0 = x;
+    for(size_t i = 0; i < x.size(); i++) {
+        double old_v = x0[i];
+        x0[i] += h[i];
+        double dx = h[i];
+        double df = s->calculate_value_for(x0) - f0;
+        g[i] = df / dx;
+        x0[i] = old_v;
+    }
+    return g;
+}
+
+
+static lbfgsfloatval_t evaluate_model(void *instance,
+                                const lbfgsfloatval_t *x,
+                                lbfgsfloatval_t *g,
+                                const int n,
+                                const lbfgsfloatval_t step) {
+    auto s = reinterpret_cast<Stroke*>(instance);
+    (void)step;
+    const double rel_step = 0.000000001;
+    double fx = 0.0;
+    std::vector<double> curx(x, x+n);
+    fx = s->calculate_value_for(curx);
+    auto curh = compute_absolute_step(rel_step, curx);
+    auto g_est = estimate_derivative(s, curx, fx, curh);
+    for(int i=0; i<n; i++) {
+        g[i] = g_est[i];
+    }
+    return fx;
+}
+
+void optimize(Stroke *s) {
+    double final_result = 1e8;
+    auto variables = s->get_free_variables();
+    assert(variables.size() == 7);
+
+    lbfgs_parameter_t param;
+    lbfgs_parameter_init(&param);
+    int ret = lbfgs(variables.size(), &variables[0], &final_result, evaluate_model, nullptr, &s, &param);
+    printf("Exit value: %d\n", ret);
+}
+
 int main(int, char **) {
     SvgExporter e;
     Stroke s(6);
@@ -152,6 +213,10 @@ int main(int, char **) {
     s.add_constraint(std::make_unique<SameOffsetConstraint>(14, 15, 2, 3));
     s.add_constraint(std::make_unique<MirrorConstraint>(16, 14, 15));
     s.add_constraint(std::make_unique<SameOffsetConstraint>(17, 18, 0, 1));
+
+    optimize(&s);
+
     // e.write_svg("ess.svg");
+    printf("All done, bye-bye.\n");
     return 0;
 }
