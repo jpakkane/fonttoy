@@ -119,7 +119,6 @@ private:
     double alpha;
 };
 
-
 class AngleConstraint final : public Constraint {
 
 public:
@@ -141,4 +140,25 @@ private:
     double max_angle;
     double angle;
     double distance;
+};
+
+class SameOffsetConstraint final : public Constraint {
+
+public:
+    SameOffsetConstraint(int point_index,
+                         int relative_to_index,
+                         int other_point_index,
+                         int other_relative_to_index);
+
+    double calculate_error(const std::vector<Point> &points) const override;
+    int num_free_variables() const override;
+    void append_free_variables_to(std::vector<double> &variables) const override;
+    int put_free_variables_in(std::vector<double> &variables, const int offset) const override;
+    int get_free_variables_from(const std::vector<double> &variables, const int offset) override;
+    void update_model(std::vector<Point> &points) const override;
+    std::vector<int> determines_points() const override;
+    std::vector<VariableLimits> get_limits() const override;
+
+private:
+    int point_index, relative_to_index, other_point_index, other_relative_to_index;
 };

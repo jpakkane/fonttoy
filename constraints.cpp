@@ -131,12 +131,14 @@ void SmoothConstraint::append_free_variables_to(std::vector<double> &variables) 
     variables.push_back(alpha);
 }
 
-int SmoothConstraint::put_free_variables_in(std::vector<double> &variables, const int offset) const {
+int SmoothConstraint::put_free_variables_in(std::vector<double> &variables,
+                                            const int offset) const {
     variables[offset] = alpha;
     return 1;
 }
 
-int SmoothConstraint::get_free_variables_from(const std::vector<double> &variables, const int offset) {
+int SmoothConstraint::get_free_variables_from(const std::vector<double> &variables,
+                                              const int offset) {
     alpha = variables[offset];
     return 1;
 }
@@ -159,19 +161,19 @@ std::vector<VariableLimits> SmoothConstraint::get_limits() const {
     return result;
 }
 
-
-AngleConstraint::AngleConstraint(int point_index, int from_point_index, double min_angle, double max_angle) : point_index(point_index), from_point_index(from_point_index), min_angle(min_angle), max_angle(max_angle) {
-    angle = (min_angle + max_angle)/2.0;
+AngleConstraint::AngleConstraint(int point_index,
+                                 int from_point_index,
+                                 double min_angle,
+                                 double max_angle)
+    : point_index(point_index), from_point_index(from_point_index), min_angle(min_angle),
+      max_angle(max_angle) {
+    angle = (min_angle + max_angle) / 2.0;
     distance = 0.01;
 }
 
-double AngleConstraint::calculate_error(const std::vector<Point> &) const {
-    return 0;
-}
+double AngleConstraint::calculate_error(const std::vector<Point> &) const { return 0; }
 
-int AngleConstraint::num_free_variables() const {
-    return 2;
-}
+int AngleConstraint::num_free_variables() const { return 2; }
 
 void AngleConstraint::append_free_variables_to(std::vector<double> &variables) const {
     variables.push_back(angle);
@@ -184,7 +186,8 @@ int AngleConstraint::put_free_variables_in(std::vector<double> &variables, const
     return 2;
 }
 
-int AngleConstraint::get_free_variables_from(const std::vector<double> &variables, const int offset) {
+int AngleConstraint::get_free_variables_from(const std::vector<double> &variables,
+                                             const int offset) {
     angle = variables[offset];
     distance = variables[offset];
     return 2;
@@ -192,7 +195,7 @@ int AngleConstraint::get_free_variables_from(const std::vector<double> &variable
 
 void AngleConstraint::update_model(std::vector<Point> &points) const {
     Vector direction_unit_vector = Vector(cos(angle), sin(angle));
-    points[point_index] = points[from_point_index] + direction_unit_vector*distance;
+    points[point_index] = points[from_point_index] + direction_unit_vector * distance;
 }
 
 std::vector<int> AngleConstraint::determines_points() const {
@@ -207,5 +210,42 @@ std::vector<VariableLimits> AngleConstraint::get_limits() const {
     std::vector<VariableLimits> result;
     result.push_back(angle_limits);
     result.push_back(dist_limits);
+    return result;
+}
+
+SameOffsetConstraint::SameOffsetConstraint(int point_index,
+                                           int relative_to_index,
+                                           int other_point_index,
+                                           int other_relative_to_index)
+    : point_index(point_index), relative_to_index(relative_to_index),
+      other_point_index(other_point_index), other_relative_to_index(other_relative_to_index) {}
+
+double SameOffsetConstraint::calculate_error(const std::vector<Point> &) const { return 0.0; }
+
+int SameOffsetConstraint::num_free_variables() const { return 0; }
+
+void SameOffsetConstraint::append_free_variables_to(std::vector<double> &) const {}
+
+int SameOffsetConstraint::put_free_variables_in(std::vector<double> &, const int) const {
+    return 0;
+}
+
+int SameOffsetConstraint::get_free_variables_from(const std::vector<double> &, const int) {
+    return 0;
+}
+
+void SameOffsetConstraint::update_model(std::vector<Point> &points) const {
+    auto delta = points[other_point_index] - points[other_relative_to_index];
+    points[point_index] = points[relative_to_index] + delta;
+}
+
+std::vector<int> SameOffsetConstraint::determines_points() const {
+    std::vector<int> result;
+    result.push_back(point_index);
+    return result;
+}
+
+std::vector<VariableLimits> SameOffsetConstraint::get_limits() const {
+    std::vector<VariableLimits> result;
     return result;
 }
