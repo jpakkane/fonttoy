@@ -18,23 +18,17 @@
 #include <constraints.hpp>
 #include <cmath>
 
-double FixedConstraint::calculate_error(const std::vector<Point> &) const {
-    return 0.0;
-}
+double FixedConstraint::calculate_error(const std::vector<Point> &) const { return 0.0; }
 
 int FixedConstraint::num_free_variables() const { return 0; }
 
 void FixedConstraint::append_free_variables_to(std::vector<double> &) const {}
 
-int FixedConstraint::put_free_variables_in(std::vector<double> &, const int) const {
-    return 0;
-}
+int FixedConstraint::put_free_variables_in(std::vector<double> &, const int) const { return 0; }
 
-int FixedConstraint::get_free_variables_from(const std::vector<double> &, const int) {
-    return 0;
-}
+int FixedConstraint::get_free_variables_from(const std::vector<double> &, const int) { return 0; }
 
-void FixedConstraint::update_model(std::vector<Point> &points) { points[point_index] = p; }
+void FixedConstraint::update_model(std::vector<Point> &points) const { points[point_index] = p; }
 
 std::vector<int> FixedConstraint::determines_points() const {
     std::vector<int> v;
@@ -52,31 +46,29 @@ DirectionConstraint::DirectionConstraint(int from_point_index, int to_point_inde
     distance = 0.2;
 }
 
-double DirectionConstraint::calculate_error(const std::vector<Point> &) const {
-    return 0.0;
-}
+double DirectionConstraint::calculate_error(const std::vector<Point> &) const { return 0.0; }
 
-int DirectionConstraint::num_free_variables() const {
-    return 1;
-}
+int DirectionConstraint::num_free_variables() const { return 1; }
 
 void DirectionConstraint::append_free_variables_to(std::vector<double> &variables) const {
     variables.push_back(distance);
 }
 
-int DirectionConstraint::put_free_variables_in(std::vector<double> &points, const int offset) const {
+int DirectionConstraint::put_free_variables_in(std::vector<double> &points,
+                                               const int offset) const {
     points[offset] = distance;
     return 1;
 }
 
-int DirectionConstraint::get_free_variables_from(const std::vector<double> &points, const int offset) {
+int DirectionConstraint::get_free_variables_from(const std::vector<double> &points,
+                                                 const int offset) {
     distance = points[offset];
     return 1;
 }
 
-void DirectionConstraint::update_model(std::vector<Point> &points) {
+void DirectionConstraint::update_model(std::vector<Point> &points) const {
     Vector direction_unit_vector(cos(angle), sin(angle));
-    points[to_point_index] = points[from_point_index] + distance*direction_unit_vector;
+    points[to_point_index] = points[from_point_index] + distance * direction_unit_vector;
 }
 
 std::vector<int> DirectionConstraint::determines_points() const {
@@ -90,4 +82,35 @@ std::vector<VariableLimits> DirectionConstraint::get_limits() const {
     VariableLimits l{0.0, {}};
     v.push_back(l);
     return v;
+}
+
+MirrorConstraint::MirrorConstraint(int point_index, int from_point_index, int mirror_point_index)
+    : point_index(point_index), from_point_index(from_point_index),
+      mirror_point_index(mirror_point_index) {}
+
+double MirrorConstraint::calculate_error(const std::vector<Point> &) const { return 0.0; }
+
+int MirrorConstraint::num_free_variables() const { return 0; }
+
+void MirrorConstraint::append_free_variables_to(std::vector<double> &) const {}
+
+int MirrorConstraint::put_free_variables_in(std::vector<double> &, const int) const { return 0; }
+
+int MirrorConstraint::get_free_variables_from(const std::vector<double> &, const int) { return 0; }
+
+void MirrorConstraint::update_model(std::vector<Point> &points) const {
+    Vector updated_location(Vector(points[mirror_point_index]) * 2.0 -
+                            Vector(points[from_point_index]));
+    points[point_index] = Point(updated_location.x(), updated_location.y());
+}
+
+std::vector<int> MirrorConstraint::determines_points() const {
+    std::vector<int> result;
+    result.push_back(point_index);
+    return result;
+}
+
+std::vector<VariableLimits> MirrorConstraint::get_limits() const {
+    std::vector<VariableLimits> l;
+    return l;
 }

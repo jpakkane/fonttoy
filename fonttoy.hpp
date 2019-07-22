@@ -85,6 +85,8 @@ public:
     Point operator+(const Point &o) const { return o + *this; }
     Point operator+(Point &&o) const { return o + *this; }
 
+    Vector operator-(const Vector &o) const { return Vector{x_ - o.x_, y_ - o.y_}; }
+
     bool is_numerically_zero() const;
 
 private:

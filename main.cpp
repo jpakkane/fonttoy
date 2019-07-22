@@ -76,16 +76,16 @@ static lbfgsfloatval_t evaluate(void *instance,
     return fx;
 }
 
-static int progress(void *instance,
-                    const lbfgsfloatval_t *x,
-                    const lbfgsfloatval_t *g,
-                    const lbfgsfloatval_t fx,
-                    const lbfgsfloatval_t xnorm,
-                    const lbfgsfloatval_t gnorm,
-                    const lbfgsfloatval_t step,
-                    int n,
-                    int k,
-                    int ls) {
+static int progress(void *,
+                    const lbfgsfloatval_t *,
+                    const lbfgsfloatval_t *,
+                    const lbfgsfloatval_t,
+                    const lbfgsfloatval_t,
+                    const lbfgsfloatval_t,
+                    const lbfgsfloatval_t,
+                    int,
+                    int,
+                    int) {
     return 0;
 }
 
@@ -139,8 +139,8 @@ int main(int, char **) {
 
     // Then control points.
     s.add_constraint(std::make_unique<DirectionConstraint>(3, 2, M_PI));
-    /*
     s.add_constraint(std::make_unique<MirrorConstraint>(4, 2, 3));
+    /*
     s.add_constraint(std::make_unique<DirectionConstraint>(6, 5, 3.0 * math.pi / 2.0));
     s.add_constraint(std::make_unique<SmoothConstraint>(7, 5, 6));
     s.add_constraint(std::make_unique<AngleConstraint>(
