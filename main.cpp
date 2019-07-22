@@ -144,11 +144,11 @@ int main(int, char **) {
     s.add_constraint(std::make_unique<MirrorConstraint>(4, 2, 3));
     s.add_constraint(std::make_unique<DirectionConstraint>(6, 5, 3.0 * M_PI / 2.0));
     s.add_constraint(std::make_unique<SmoothConstraint>(7, 5, 6));
-    /*
     s.add_constraint(std::make_unique<AngleConstraint>(
         8, 9, (360.0 - 15.0) / 360.0 * 2.0 * M_PI, (360.0 - 1.0) / 360.0 * 2.0 * M_PI));
+    /*
     s.add_constraint(std::make_unique<MirrorConstraint>(10, 8, 9));
-    s.add_constraint(std::make_unique<DirectionConstraint>(12, 11, 3.0 * math.pi / 2.0));
+    s.add_constraint(std::make_unique<DirectionConstraint>(12, 11, 3.0 * M_PI / 2.0));
     s.add_constraint(std::make_unique<SmoothConstraint>(13, 11, 12));
     s.add_constraint(std::make_unique<SameOffsetConstraint>(14, 15, 2, 3));
     s.add_constraint(std::make_unique<MirrorConstraint>(16, 14, 15));

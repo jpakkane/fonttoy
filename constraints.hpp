@@ -33,8 +33,8 @@ public:
     virtual double calculate_error(const std::vector<Point> &points) const = 0;
     virtual int num_free_variables() const = 0;
     virtual void append_free_variables_to(std::vector<double> &variables) const = 0;
-    virtual int put_free_variables_in(std::vector<double> &points, const int offset) const = 0;
-    virtual int get_free_variables_from(const std::vector<double> &points, const int offset) = 0;
+    virtual int put_free_variables_in(std::vector<double> &variables, const int offset) const = 0;
+    virtual int get_free_variables_from(const std::vector<double> &variables, const int offset) = 0;
     virtual void update_model(std::vector<Point> &points) const = 0;
     virtual std::vector<int> determines_points() const = 0;
     virtual std::vector<VariableLimits> get_limits() const = 0;
@@ -117,4 +117,28 @@ public:
 private:
     int this_control_index, other_control_index, curve_point_index;
     double alpha;
+};
+
+
+class AngleConstraint final : public Constraint {
+
+public:
+    AngleConstraint(int point_index, int from_point_index, double min_angle, double max_angle);
+
+    double calculate_error(const std::vector<Point> &points) const override;
+    int num_free_variables() const override;
+    void append_free_variables_to(std::vector<double> &variables) const override;
+    int put_free_variables_in(std::vector<double> &points, const int offset) const override;
+    int get_free_variables_from(const std::vector<double> &points, const int offset) override;
+    void update_model(std::vector<Point> &points) const override;
+    std::vector<int> determines_points() const override;
+    std::vector<VariableLimits> get_limits() const override;
+
+private:
+    int point_index;
+    int from_point_index;
+    double min_angle;
+    double max_angle;
+    double angle;
+    double distance;
 };
