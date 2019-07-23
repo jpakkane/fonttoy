@@ -133,6 +133,8 @@ public:
     double calculate_value_for(const std::vector<double> &vars);
     std::vector<Bezier> build_beziers() const;
 
+    void freeze();
+
 private:
     void update_model();
     double calculate_2nd_der() const;
@@ -142,4 +144,5 @@ private:
     std::vector<Point> points;
     std::vector<std::unique_ptr<Constraint>> constraints;
     std::vector<VariableLimits> limits;
+    bool is_frozen = false; // No more constraints.
 };

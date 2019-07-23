@@ -19,6 +19,7 @@
 #include <constraints.hpp>
 #include <cmath>
 #include <cassert>
+#include <unordered_set>
 
 Vector Point::operator-(const Point &other) const { return Vector(x_ - other.x_, y_ - other.y_); }
 
@@ -106,6 +107,7 @@ Stroke::Stroke(const int num_beziers) : num_beziers(num_beziers) {
 }
 
 void Stroke::add_constraint(std::unique_ptr<Constraint> c) {
+    assert(!is_frozen);
     constraints.push_back(std::move(c));
     for(auto &&l : constraints.back()->get_limits()) {
         limits.emplace_back(l);
@@ -128,6 +130,7 @@ void Stroke::set_free_variables(const std::vector<double> &v) {
 }
 
 double Stroke::calculate_value_for(const std::vector<double> &vars) {
+    assert(is_frozen);
     set_free_variables(vars);
     update_model();
     return calculate_2nd_der() + calculate_limit_errors(vars);
@@ -139,6 +142,26 @@ void Stroke::update_model() {
         c->update_model(points);
     }
 }
+
+void Stroke::freeze() {
+    assert(!is_frozen);
+    // Set up a free constraint for every point that has no
+    // constraints yet. Otherwise the optimization routine
+    // can not move them.
+    std::unordered_set<int> constrained;
+    for(const auto &c: constraints) {
+        for(const auto &p: c->determines_points()) {
+            constrained.insert(p);
+        }
+    }
+    for(int i=0; i<(int)points.size(); i++) {
+        if(constrained.find(i) == constrained.end()) {
+            add_constraint(std::make_unique<FreeConstraint>(i, points[i]));
+        }
+    }
+    is_frozen = true;
+}
+
 
 double Stroke::calculate_2nd_der() const {
     auto beziers = build_beziers();

@@ -53,6 +53,27 @@ private:
     Point p;
 };
 
+class FreeConstraint final : public Constraint {
+
+public:
+    explicit FreeConstraint(int point_index) : point_index(point_index), p(0.2, 0.3) {}
+    FreeConstraint(int point_index, Point p) : point_index(point_index), p(p) {}
+
+    double calculate_error(const std::vector<Point> &points) const override;
+    int num_free_variables() const override;
+    void append_free_variables_to(std::vector<double> &variables) const override;
+    int put_free_variables_in(std::vector<double> &variables, const int offset) const override;
+    int get_free_variables_from(const std::vector<double> &variables, const int offset) override;
+    void update_model(std::vector<Point> &points) const override;
+    std::vector<int> determines_points() const override;
+    std::vector<VariableLimits> get_limits() const override;
+
+private:
+    int point_index;
+    Point p;
+};
+
+
 class DirectionConstraint final : public Constraint {
 
 public:

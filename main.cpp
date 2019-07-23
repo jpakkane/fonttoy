@@ -151,17 +151,30 @@ std::vector<double> estimate_derivative(Stroke *s,
     return g;
 }
 
+void write_svg(Stroke &s, const char *fname) {
+    SvgExporter svg;
+    for(const auto b : s.build_beziers()) {
+        svg.draw_bezier(b.p1(), b.c1(), b.c2(), b.p2(), true);
+    }
+    svg.write_svg(fname);
+}
+
+
 static lbfgsfloatval_t evaluate_model(void *instance,
                                       const lbfgsfloatval_t *x,
                                       lbfgsfloatval_t *g,
                                       const int n,
                                       const lbfgsfloatval_t step) {
+    static int num = 0;
+    char buf[256];
     auto s = reinterpret_cast<Stroke *>(instance);
     (void)step;
     const double rel_step = 0.000000001;
     double fx = 0.0;
     std::vector<double> curx(x, x + n);
     fx = s->calculate_value_for(curx);
+    sprintf(buf, "eval%03d.svg", num++);
+    write_svg(*s, buf);
     auto curh = compute_absolute_step(rel_step, curx);
     auto g_est = estimate_derivative(s, curx, fx, curh);
     for(int i = 0; i < n; i++) {
@@ -169,14 +182,6 @@ static lbfgsfloatval_t evaluate_model(void *instance,
     }
     printf("Evaluation: %f\n", fx);
     return fx;
-}
-
-void write_svg(Stroke &s, const char *fname) {
-    SvgExporter svg;
-    for(const auto b : s.build_beziers()) {
-        svg.draw_bezier(b.p1(), b.c1(), b.c2(), b.p2(), true);
-    }
-    svg.write_svg(fname);
 }
 
 int model_progress(void *instance,
@@ -201,6 +206,10 @@ void optimize(Stroke *s) {
     double final_result = 1e8;
     auto variables = s->get_free_variables();
     assert(variables.size() == 7);
+    s->freeze();
+    variables = s->get_free_variables();
+    assert(variables.size() == 9);
+
     s->calculate_value_for(variables);
     write_svg(*s, "initial.svg");
 
