@@ -23,7 +23,7 @@ using namespace tinyxml2;
 
 SvgExporter::SvgExporter() {
     setup_canvas();
-    draw_example();
+    // draw_example();
 }
 
 void SvgExporter::setup_canvas() {

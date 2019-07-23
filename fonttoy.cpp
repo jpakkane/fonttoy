@@ -68,26 +68,26 @@ Vector operator*(const double d, const Vector &v) { return v * d; }
 Vector operator*(const double d, Vector &&v) { return v * d; }
 
 Point Bezier::evaluate(const double t) const {
-    double x = pow(1.0 - t, 3.0) * p1.x() + 3.0 * pow(1.0 - t, 2.0) * t * c1.x() +
-               3.0 * (1.0 - t) * t * t * c2.x() + pow(t, 3.0) * p2.x();
-    double y = pow(1.0 - t, 3.0) * p1.y() + 3.0 * pow(1.0 - t, 2.0) * t * c1.y() +
-               3.0 * (1.0 - t) * t * t * c2.y() + pow(t, 3) * p2.y();
+    double x = pow(1.0 - t, 3.0) * p1_.x() + 3.0 * pow(1.0 - t, 2.0) * t * c1_.x() +
+               3.0 * (1.0 - t) * t * t * c2_.x() + pow(t, 3.0) * p2_.x();
+    double y = pow(1.0 - t, 3.0) * p1_.y() + 3.0 * pow(1.0 - t, 2.0) * t * c1_.y() +
+               3.0 * (1.0 - t) * t * t * c2_.y() + pow(t, 3) * p2_.y();
     return Point(x, y);
 }
 
 Vector Bezier::evaluate_d1(const double t) const {
-    double x = 3.0 * pow(1.0 - t, 2) * (c1.x() - p1.x()) + 6.0 * (1.0 - t) * t * (c2.x() - c1.x()) +
-               3.0 * t * t * (p2.x() - c2.x());
-    double y = 3.0 * pow(1.0 - t, 2) * (c1.y() - p1.y()) + 6.0 * (1.0 - t) * t * (c2.y() - c1.y()) +
-               3.0 * t * t * (p2.y() - c2.y());
+    double x = 3.0 * pow(1.0 - t, 2) * (c1_.x() - p1_.x()) +
+               6.0 * (1.0 - t) * t * (c2_.x() - c1_.x()) + 3.0 * t * t * (p2_.x() - c2_.x());
+    double y = 3.0 * pow(1.0 - t, 2) * (c1_.y() - p1_.y()) +
+               6.0 * (1.0 - t) * t * (c2_.y() - c1_.y()) + 3.0 * t * t * (p2_.y() - c2_.y());
     return Vector(x, y);
 }
 
 Vector Bezier::evaluate_d2(const double t) const {
-    double x = 6.0 * (1.0 - t) * (c2.x() - 2.0 * c1.x() + p1.x()) +
-               6.0 * t * (p2.x() - 2.0 * c2.x() + p1.x());
-    double y = 6.0 * (1.0 - t) * (c2.y() - 2.0 * c1.y() + p1.y()) +
-               6.0 * t * (p2.y() - 2.0 * c2.y() + p1.y());
+    double x = 6.0 * (1.0 - t) * (c2_.x() - 2.0 * c1_.x() + p1_.x()) +
+               6.0 * t * (p2_.x() - 2.0 * c2_.x() + p1_.x());
+    double y = 6.0 * (1.0 - t) * (c2_.y() - 2.0 * c1_.y() + p1_.y()) +
+               6.0 * t * (p2_.y() - 2.0 * c2_.y() + p1_.y());
     return Vector(x, y);
 }
 

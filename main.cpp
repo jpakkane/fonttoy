@@ -167,20 +167,50 @@ static lbfgsfloatval_t evaluate_model(void *instance,
     for(int i = 0; i < n; i++) {
         g[i] = g_est[i];
     }
+    printf("Evaluation: %f\n", fx);
     return fx;
+}
+
+void write_svg(Stroke &s, const char *fname) {
+    SvgExporter svg;
+    for(const auto b : s.build_beziers()) {
+        svg.draw_bezier(b.p1(), b.c1(), b.c2(), b.p2(), true);
+    }
+    svg.write_svg(fname);
+}
+
+int model_progress(void *instance,
+                   const lbfgsfloatval_t *,
+                   const lbfgsfloatval_t *,
+                   const lbfgsfloatval_t,
+                   const lbfgsfloatval_t,
+                   const lbfgsfloatval_t,
+                   const lbfgsfloatval_t,
+                   int,
+                   int k,
+                   int) {
+    printf("Iteration %d\n", k);
+    Stroke *s = reinterpret_cast<Stroke *>(instance);
+    char buf[128];
+    sprintf(buf, "step%d.svg", k);
+    write_svg(*s, buf);
+    return 0;
 }
 
 void optimize(Stroke *s) {
     double final_result = 1e8;
     auto variables = s->get_free_variables();
     assert(variables.size() == 7);
+    s->calculate_value_for(variables);
+    write_svg(*s, "initial.svg");
 
     lbfgs_parameter_t param;
     lbfgs_parameter_init(&param);
-    int ret =
-        lbfgs(variables.size(), &variables[0], &final_result, evaluate_model, nullptr, &s, &param);
+    int ret = lbfgs(
+        variables.size(), &variables[0], &final_result, evaluate_model, model_progress, s, &param);
     printf("Exit value: %d\n", ret);
     // insert final values back in the stroke here.
+    s->calculate_value_for(variables);
 }
 
 int main(int, char **) {
@@ -218,8 +248,8 @@ int main(int, char **) {
     s.add_constraint(std::make_unique<SameOffsetConstraint>(17, 18, 0, 1));
 
     optimize(&s);
+    write_svg(s, "output.svg");
 
-    // e.write_svg("ess.svg");
     printf("All done, bye-bye.\n");
     return 0;
 }

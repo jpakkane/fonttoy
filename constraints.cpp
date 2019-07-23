@@ -17,6 +17,7 @@
 
 #include <constraints.hpp>
 #include <cmath>
+#include <cassert>
 
 double FixedConstraint::calculate_error(const std::vector<Point> &) const { return 0.0; }
 
@@ -167,6 +168,7 @@ AngleConstraint::AngleConstraint(int point_index,
                                  double max_angle)
     : point_index(point_index), from_point_index(from_point_index), min_angle(min_angle),
       max_angle(max_angle) {
+    assert(min_angle < max_angle);
     angle = (min_angle + max_angle) / 2.0;
     distance = 0.01;
 }
@@ -189,7 +191,7 @@ int AngleConstraint::put_free_variables_in(std::vector<double> &variables, const
 int AngleConstraint::get_free_variables_from(const std::vector<double> &variables,
                                              const int offset) {
     angle = variables[offset];
-    distance = variables[offset];
+    distance = variables[offset + 1];
     return 2;
 }
 

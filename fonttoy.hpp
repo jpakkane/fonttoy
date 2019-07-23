@@ -106,15 +106,20 @@ Vector operator*(const double d, Vector &&v);
 
 class Bezier final {
 public:
-    Bezier(Point p1, Point c1, Point c2, Point p2) : p1(p1), c1(c1), c2(c2), p2(p2) {}
+    Bezier(Point p1, Point c1, Point c2, Point p2) : p1_(p1), c1_(c1), c2_(c2), p2_(p2) {}
 
     Point evaluate(const double t) const;
     Vector evaluate_d1(const double t) const;
     Vector evaluate_d2(const double t) const;
     Vector evaluate_left_normal(const double t) const;
 
+    const Point &p1() const { return p1_; }
+    const Point &c1() const { return c1_; }
+    const Point &c2() const { return c2_; }
+    const Point &p2() const { return p2_; }
+
 private:
-    Point p1, c1, c2, p2;
+    Point p1_, c1_, c2_, p2_;
 };
 
 class Stroke final {
@@ -126,12 +131,12 @@ public:
     void add_constraint(std::unique_ptr<Constraint> c);
 
     double calculate_value_for(const std::vector<double> &vars);
+    std::vector<Bezier> build_beziers() const;
 
 private:
     void update_model();
     double calculate_2nd_der() const;
     double calculate_limit_errors(const std::vector<double> &vars) const;
-    std::vector<Bezier> build_beziers() const;
 
     int num_beziers;
     std::vector<Point> points;
