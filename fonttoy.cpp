@@ -132,6 +132,7 @@ void Stroke::set_free_variables(const std::vector<double> &v) {
 double Stroke::calculate_value_for(const std::vector<double> &vars) {
     assert(is_frozen);
     set_free_variables(vars);
+    update_model(); // HACK, see comment in update_model.
     update_model();
     return calculate_2nd_der() + calculate_limit_errors(vars);
 }

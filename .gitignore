@@ -6,3 +6,6 @@ __pycache__
 .cproject
 .pydevproject
 /proto/*.svg
+
+/subprojects/packagecache/
+/subprojects/tinyxml2/
