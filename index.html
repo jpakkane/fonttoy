@@ -4,16 +4,17 @@
     <script>
       function runWasm() {
           var myStrValue = "abcdefghijklmnopqrstuvwxyz";
-          var ptr  = allocate(20000, 'i8', ALLOC_NORMAL);
+          // FIXME: use intArrayFromString for passing argument in.
+          var ptr  = allocate(80000, 'i8', ALLOC_NORMAL);
 
           var retVal = _wasm_entrypoint(ptr);
 
-          var resValue = UTF8ToString(ptr, 1000);
+          var resValue = UTF8ToString(ptr);
 
           _free(ptr);
 
-          var s = "WASM returned: " + resValue;
-          document.getElementById("outputnode").innerHTML = s;
+          document.getElementById("outputnode").innerHTML = resValue;
+          document.getElementById("debugtext").value = resValue;
       }
     </script>
   </head>
@@ -29,6 +30,10 @@
     <p>
       <div id="outputnode">
       </div>
+    </p>
+    <h2>Text version of same</h2>
+    <p>
+      <textarea rows="20" cols="100" id="debugtext">Generated SVG will be put here in plaintext.</textarea>
     </p>
   </body>
 </html>

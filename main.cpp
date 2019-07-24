@@ -83,11 +83,15 @@ std::vector<double> estimate_derivative(Stroke *s,
     return g;
 }
 
-void write_svg(Stroke &s, const char *fname) {
-    SvgExporter svg;
+void put_beziers_in(Stroke &s, SvgExporter &svg) {
     for(const auto b : s.build_beziers()) {
         svg.draw_bezier(b.p1(), b.c1(), b.c2(), b.p2(), true);
     }
+}
+
+void write_svg(Stroke &s, const char *fname) {
+    SvgExporter svg;
+    put_beziers_in(s, svg);
     svg.write_svg(fname);
 }
 
@@ -205,8 +209,12 @@ extern "C" {
 // If this function is not referenced from main() below, emcc will just
 // remove it. That was a "fun" debugging experience.
 int wasm_entrypoint(char *buf) {
-    const char* str = "Hello from C++!";
-    strcpy(buf, str);
+    SvgExporter e;
+    Stroke s = calculate_sample();
+    SvgExporter svg;
+    put_beziers_in(s, svg);
+    std::string result = svg.to_string();
+    strcpy(buf, result.c_str());
     printf("Something.\n");
     return 42;
 }

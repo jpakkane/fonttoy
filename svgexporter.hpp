@@ -18,12 +18,14 @@
 */
 
 #include <tinyxml2.h>
+#include <string>
 #include <fonttoy.hpp>
 
 class SvgExporter final {
 public:
     SvgExporter();
     void write_svg(const char *ofname);
+    std::string to_string() const;
 
     void draw_line(double x1,
                    double y1,
