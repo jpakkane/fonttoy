@@ -204,7 +204,10 @@ extern "C" {
 
 // If this function is not referenced from main() below, emcc will just
 // remove it. That was a "fun" debugging experience.
-int wasm_entrypoint() {
+int wasm_entrypoint(char *buf) {
+    const char* str = "Hello from C++!";
+    strcpy(buf, str);
+    printf("Something.\n");
     return 42;
 }
 
@@ -213,7 +216,7 @@ int wasm_entrypoint() {
 int main(int argc, char **) {
     printf("Initialized.\n");
     if(argc == 1234567) {
-        wasm_entrypoint();
+        wasm_entrypoint(nullptr);
     }
     return 0;
 }

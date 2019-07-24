@@ -3,7 +3,16 @@
     <meta charset="utf-8">
     <script>
       function runWasm() {
-          var s = "WASM returned: " + _wasm_entrypoint();
+          var myStrValue = "abcdefghijklmnopqrstuvwxyz";
+          var ptr  = allocate(20000, 'i8', ALLOC_NORMAL);
+
+          var retVal = _wasm_entrypoint(ptr);
+
+          var resValue = UTF8ToString(ptr, 1000);
+
+          _free(ptr);
+
+          var s = "WASM returned: " + resValue;
           document.getElementById("outputnode").innerHTML = s;
       }
     </script>
