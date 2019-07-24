@@ -1,11 +1,14 @@
 *~
 __pycache__
 /build
+/buildwasm
 .settings
 .project
 .cproject
 .pydevproject
 /proto/*.svg
 
+/subprojects/liblbfgs-1.10/
 /subprojects/packagecache/
 /subprojects/tinyxml2/
+

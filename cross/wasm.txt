@@ -5,8 +5,8 @@ ar = '/home/jpakkane/emsdk/fastcomp/emscripten/emar'
 
 [properties]
 
-c_args = ['-s', 'WASM=1']
-cpp_args = ['-s', 'WASM=1']
+c_args = ['-s', 'WASM=1', '-s', 'EXPORT_ALL=1']
+cpp_args = ['-s', 'WASM=1', '-s', 'EXPORT_ALL=1']
 
 [host_machine]
 

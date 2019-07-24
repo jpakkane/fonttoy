@@ -21,7 +21,7 @@
 #include <memory>
 #include <optional>
 
-struct Vector;
+class Vector;
 class Constraint;
 
 struct VariableLimits {

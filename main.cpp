@@ -24,6 +24,8 @@
 #include <cassert>
 #include <cmath>
 
+static bool debug_svgs = false;
+
 static_assert(sizeof(lbfgsfloatval_t) == sizeof(double));
 
 typedef double (*fptr)(const double *, const int);
@@ -96,15 +98,17 @@ static lbfgsfloatval_t evaluate_model(void *instance,
                                       const int n,
                                       const lbfgsfloatval_t step) {
     static int num = 0;
-    char buf[256];
     auto s = reinterpret_cast<Stroke *>(instance);
     (void)step;
     const double rel_step = 0.000000001;
     double fx = 0.0;
     std::vector<double> curx(x, x + n);
     fx = s->calculate_value_for(curx);
-    sprintf(buf, "eval%03d.svg", num++);
-    write_svg(*s, buf);
+    if(debug_svgs) {
+        char buf[256];
+        sprintf(buf, "eval%03d.svg", num++);
+        write_svg(*s, buf);
+    }
     auto curh = compute_absolute_step(rel_step, curx);
     auto g_est = estimate_derivative(s, curx, fx, curh);
     for(int i = 0; i < n; i++) {
@@ -126,9 +130,11 @@ int model_progress(void *instance,
                    int) {
     printf("Iteration %d\n", k);
     Stroke *s = reinterpret_cast<Stroke *>(instance);
-    char buf[128];
-    sprintf(buf, "step%d.svg", k);
-    write_svg(*s, buf);
+    if(debug_svgs) {
+        char buf[128];
+        sprintf(buf, "step%d.svg", k);
+        write_svg(*s, buf);
+    }
     return 0;
 }
 
@@ -141,7 +147,9 @@ void optimize(Stroke *s) {
     assert(variables.size() == 9);
 
     s->calculate_value_for(variables);
-    write_svg(*s, "initial.svg");
+    if(debug_svgs) {
+        write_svg(*s, "initial.svg");
+    }
 
     lbfgs_parameter_t param;
     lbfgs_parameter_init(&param);
@@ -152,8 +160,8 @@ void optimize(Stroke *s) {
     s->calculate_value_for(variables);
 }
 
-int main(int, char **) {
-    SvgExporter e;
+
+Stroke calculate_sample() {
     Stroke s(6);
     const double h = 1.0;
     const double w = 0.7;
@@ -187,8 +195,26 @@ int main(int, char **) {
     s.add_constraint(std::make_unique<SameOffsetConstraint>(17, 18, 0, 1));
 
     optimize(&s);
+    return s;
+}
+
+#if defined(WASM)
+
+extern "C" const char *wasm_entrypoint() {
+    return "foobar";
+}
+
+int main() { return 0; }
+
+#else
+
+int main(int, char **) {
+    debug_svgs = true;
+    SvgExporter e;
+    Stroke s = calculate_sample();
     write_svg(s, "output.svg");
 
     printf("All done, bye-bye.\n");
     return 0;
 }
+#endif
