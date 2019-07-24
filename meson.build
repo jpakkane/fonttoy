@@ -7,6 +7,9 @@ tinyxml2_dep = dependency('tinyxml2', fallback: ['tinyxml2', 'tinyxml2_dep'])
 
 if host_machine.cpu().startswith('wasm')
     add_project_arguments('-DWASM', language: 'cpp')
+    configure_file(input: 'index.html',
+        output: 'index.html',
+        copy: true)
 endif
 
 executable('fonttoy', 'main.cpp', 'fonttoy.cpp', 'svgexporter.cpp', 'constraints.cpp',

@@ -200,11 +200,23 @@ Stroke calculate_sample() {
 
 #if defined(WASM)
 
-extern "C" const char *wasm_entrypoint() {
-    return "foobar";
+extern "C" {
+
+// If this function is not referenced from main() below, emcc will just
+// remove it. That was a "fun" debugging experience.
+int wasm_entrypoint() {
+    return 42;
 }
 
-int main() { return 0; }
+}
+
+int main(int argc, char **) {
+    printf("Initialized.\n");
+    if(argc == 1234567) {
+        wasm_entrypoint();
+    }
+    return 0;
+}
 
 #else
 
