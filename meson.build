@@ -14,3 +14,5 @@ endif
 
 executable('fonttoy', 'main.cpp', 'fonttoy.cpp', 'svgexporter.cpp', 'constraints.cpp',
     dependencies: [tinyxml2_dep, lbfgs_dep])
+
+executable('parsertest', 'parsertest.cpp')
