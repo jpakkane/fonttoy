@@ -1,21 +1,9 @@
-#include<regex>
-#include<string>
-#include<vector>
-#include<cstdio>
-
-const std::regex id         (R"([a-zA-Z_]+[a-zA-Z0-9_]*)");
-const std::regex number     (R"([0-9]+(.[0-9]*)?)");
-const std::regex plus       (R"(\+)");
-const std::regex minus      (R"(-)");
-const std::regex multiply   (R"(\*)");
-const std::regex divide     (R"(/)");
-const std::regex equal      (R"(=)");
-const std::regex dot        (R"(\.)");
-const std::regex semicolon  (R"(;)");
-const std::regex whitespace (R"([ \r\t]+)");
-const std::regex linefeed   (R"(\n)");
-const std::regex lparen     (R"(\()");
-const std::regex rparen     (R"(\))");
+#include <regex>
+#include <string>
+#include <vector>
+#include <variant>
+#include <cstdio>
+#include <cassert>
 
 // These are in matching priority order.
 
@@ -67,13 +55,13 @@ const std::vector<TokenDefinition> token_rules{
     {TokenType::lparen,        "lparen",     std::regex(R"(^\()")},
     {TokenType::rparen,        "rparen",     std::regex(R"(^\))")},
     {TokenType::end_of_tokens, "eot",        std::regex("^DONOTMATCH¤")},
-    {TokenType::error,         "error",      std::regex("^DONOTMATCH@")},
+    {TokenType::error,         "error",      std::regex("^DONOTMATCH§")},
     {TokenType::eof,           "eof",        std::regex("^DONOTMATCH½")},
 };
 
 // clang-format on
 
-struct Token {
+struct Token final {
     TokenType type;
     std::string contents;
     int byte_offset;
@@ -81,9 +69,9 @@ struct Token {
     int column_number;
 };
 
-class Tokenizer final {
+class Lexer final {
 public:
-    explicit Tokenizer(const std::string &s) : text(s) {}
+    explicit Lexer(const std::string &s) : text(s) {}
     Token next() {
         Token t;
         t.byte_offset = byte_offset;
@@ -100,12 +88,12 @@ public:
             t.contents += text[byte_offset];
             return t;
         }
-        for(const auto &tr: token_rules) {
+        for(const auto &tr : token_rules) {
             if(tr.type == TokenType::end_of_tokens) {
                 break;
             }
             std::cmatch m;
-            if(std::regex_search(text.c_str()+byte_offset, m, tr.r)) {
+            if(std::regex_search(text.c_str() + byte_offset, m, tr.r)) {
                 auto &submatch = m[0];
                 t.type = tr.type;
                 t.contents = text.substr(byte_offset, submatch.length());
@@ -131,11 +119,49 @@ private:
     int column_number = 1;
 };
 
-// clang-format on
+enum class NodeType : char {
+    id,
+    number,
+    assignment,
+    plus,
+    minus,
+    multiply,
+    divide,
+    parentheses,
+    statement,
+};
+
+struct Node final {
+    explicit Node(NodeType type, const Token &t)
+        : type(type), left(-1), right(-1), line_number(t.line_number), column_number(t.column_number) {
+    }
+    NodeType type;
+    std::variant<double, std::string, std::monostate> value;
+    int left;
+    int right;
+    int line_number;
+    int column_number;
+};
+
+class Parser final {
+
+public:
+    Parser();
+
+    void parse(Lexer &l) {
+        assert(nodes.size() == 0);
+        t = l.next();
+    }
+
+private:
+    std::vector<Node> nodes;
+    std::vector<int> statements;
+    Token t;
+};
 
 int main(int, char **) {
-    std::string input("1.0 + 2.0*(aaa-b*c)!");
-    Tokenizer tokenizer(input);
+    std::string input("1.0 + \n2.0*(aaa-b*c)");
+    Lexer tokenizer(input);
     Token t = tokenizer.next();
     while(t.type != TokenType::eof && t.type != TokenType::error) {
         printf("Token: %s\n", token_rules[(size_t)t.type].typestr);

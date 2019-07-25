@@ -42,13 +42,9 @@ std::vector<VariableLimits> FixedConstraint::get_limits() const {
     return v;
 }
 
-double FreeConstraint::calculate_error(const std::vector<Point> &) const {
-    return 0.0;
-}
+double FreeConstraint::calculate_error(const std::vector<Point> &) const { return 0.0; }
 
-int FreeConstraint::num_free_variables() const {
-    return 2;
-}
+int FreeConstraint::num_free_variables() const { return 2; }
 
 void FreeConstraint::append_free_variables_to(std::vector<double> &variables) const {
     variables.push_back(p.x());
@@ -57,18 +53,17 @@ void FreeConstraint::append_free_variables_to(std::vector<double> &variables) co
 
 int FreeConstraint::put_free_variables_in(std::vector<double> &variables, const int offset) const {
     variables[offset] = p.x();
-    variables[offset+1] = p.y();
+    variables[offset + 1] = p.y();
     return 2;
 }
 
-int FreeConstraint::get_free_variables_from(const std::vector<double> &variables, const int offset) {
-    p = Point(variables[offset], variables[offset+1]);
+int FreeConstraint::get_free_variables_from(const std::vector<double> &variables,
+                                            const int offset) {
+    p = Point(variables[offset], variables[offset + 1]);
     return 2;
 }
 
-void FreeConstraint::update_model(std::vector<Point> &points) const {
-    points[point_index] = p;
-}
+void FreeConstraint::update_model(std::vector<Point> &points) const { points[point_index] = p; }
 
 std::vector<int> FreeConstraint::determines_points() const {
     std::vector<int> r;
@@ -84,7 +79,6 @@ std::vector<VariableLimits> FreeConstraint::get_limits() const {
     result.push_back(l2);
     return result;
 }
-
 
 DirectionConstraint::DirectionConstraint(int from_point_index, int to_point_index, double angle)
     : from_point_index(from_point_index), to_point_index(to_point_index), angle(angle) {

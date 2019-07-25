@@ -73,7 +73,6 @@ private:
     Point p;
 };
 
-
 class DirectionConstraint final : public Constraint {
 
 public:

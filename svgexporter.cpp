@@ -193,7 +193,6 @@ void SvgExporter::write_svg(const char *ofname) { doc.SaveFile(ofname); }
 
 std::string SvgExporter::to_string() const {
     XMLPrinter printer;
-    doc.Print( &printer );
+    doc.Print(&printer);
     return std::string(printer.CStr());
 }
-

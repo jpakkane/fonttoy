@@ -150,19 +150,18 @@ void Stroke::freeze() {
     // constraints yet. Otherwise the optimization routine
     // can not move them.
     std::unordered_set<int> constrained;
-    for(const auto &c: constraints) {
-        for(const auto &p: c->determines_points()) {
+    for(const auto &c : constraints) {
+        for(const auto &p : c->determines_points()) {
             constrained.insert(p);
         }
     }
-    for(int i=0; i<(int)points.size(); i++) {
+    for(int i = 0; i < (int)points.size(); i++) {
         if(constrained.find(i) == constrained.end()) {
             add_constraint(std::make_unique<FreeConstraint>(i, points[i]));
         }
     }
     is_frozen = true;
 }
-
 
 double Stroke::calculate_2nd_der() const {
     auto beziers = build_beziers();

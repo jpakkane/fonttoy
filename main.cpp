@@ -55,7 +55,6 @@ void compute_absolute_step(double rel_step, const double *x, double *h, const in
     }
 }
 
-
 std::vector<double> compute_absolute_step(double rel_step, const std::vector<double> &x) {
     std::vector<double> h;
     h.reserve(x.size());
@@ -94,7 +93,6 @@ void write_svg(Stroke &s, const char *fname) {
     put_beziers_in(s, svg);
     svg.write_svg(fname);
 }
-
 
 static lbfgsfloatval_t evaluate_model(void *instance,
                                       const lbfgsfloatval_t *x,
@@ -164,7 +162,6 @@ void optimize(Stroke *s) {
     s->calculate_value_for(variables);
 }
 
-
 Stroke calculate_sample() {
     Stroke s(6);
     const double h = 1.0;
@@ -218,7 +215,6 @@ int wasm_entrypoint(char *buf) {
     printf("Something.\n");
     return 42;
 }
-
 }
 
 int main(int argc, char **) {
