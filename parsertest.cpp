@@ -54,12 +54,18 @@ const std::vector<TokenDefinition> token_rules{
     {TokenType::linefeed,      "linefeed",   std::regex(R"(^\n)")},
     {TokenType::lparen,        "lparen",     std::regex(R"(^\()")},
     {TokenType::rparen,        "rparen",     std::regex(R"(^\))")},
-    {TokenType::end_of_tokens, "eot",        std::regex("^DONOTMATCH¤")},
+    {TokenType::end_of_tokens, "eot",        std::regex("^DONOTMATCH¤")}, // Never produced.
     {TokenType::error,         "error",      std::regex("^DONOTMATCH§")},
     {TokenType::eof,           "eof",        std::regex("^DONOTMATCH½")},
 };
 
 // clang-format on
+
+const char* token_name(const TokenType t) {
+    assert((int)t >= 0);
+    assert((size_t)t < token_rules.size());
+    return token_rules[(int)t].typestr;
+}
 
 struct Token final {
     TokenType type;
@@ -71,7 +77,12 @@ struct Token final {
 
 class Lexer final {
 public:
-    explicit Lexer(const std::string &s) : text(s) {}
+    explicit Lexer(const std::string &s) : text(s) {
+        if(text.empty() || text.back() != '\n') {
+            text += '\n';
+        }
+    }
+
     Token next() {
         Token t;
         t.byte_offset = byte_offset;
@@ -104,6 +115,11 @@ public:
                 } else {
                     column_number += submatch.length();
                 }
+                if(t.type == TokenType::whitespace) {
+                    // The parser does not care about whitespace.
+                    // Dump it here for simplicity.
+                    return next();
+                }
                 return t;
             }
         }
@@ -127,16 +143,17 @@ enum class NodeType : char {
     minus,
     multiply,
     divide,
+    negate,
     parentheses,
     statement,
 };
 
 struct Node final {
     explicit Node(NodeType type, const Token &t)
-        : type(type), left(-1), right(-1), line_number(t.line_number), column_number(t.column_number) {
+        : type(type), value(std::monostate()), left(-1), right(-1), line_number(t.line_number), column_number(t.column_number) {
     }
     NodeType type;
-    std::variant<double, std::string, std::monostate> value;
+    std::variant<std::monostate, double, std::string> value;
     int left;
     int right;
     int line_number;
@@ -146,26 +163,93 @@ struct Node final {
 class Parser final {
 
 public:
-    Parser();
+    Parser(Lexer &l) : l(l) {};
 
-    void parse(Lexer &l) {
+    bool parse() {
         assert(nodes.size() == 0);
+        assert(!is_error());
         t = l.next();
+        if(accept(TokenType::eof)) {
+            return true;
+        }
+        if(t.type >= TokenType::end_of_tokens) {
+            error_message = "Lexing failed: " + t.contents;
+            return false;
+        }
+        return statement();
     }
 
+    const std::string get_error() const { return error_message; }
+
 private:
+    bool is_error() const { return !error_message.empty(); }
+
+    bool statement() {
+        if(t.type != TokenType::id) {
+            error_message = "Incorrect node type for statement: ";
+            error_message += token_name(t.type);
+            return false;
+        }
+        auto id_index = nodes.size();
+        nodes.emplace_back(NodeType::id, t);
+        nodes.back().value = t.contents;
+        if(!expect(TokenType::equal)) {
+            return false;
+        }
+        auto assignment_index = nodes.size();
+        nodes.emplace_back(NodeType::assignment, t);
+        statements.push_back(assignment_index);
+        if(!expression()) {
+            return false;
+        }
+        if(!expect(TokenType::linefeed)) {
+            return false;
+        }
+        nodes[assignment_index].left = id_index;
+        nodes[assignment_index].right = nodes.size()-1;
+
+        return true;
+    }
+
+    bool expression() {
+        // FIXME: add implementation here.
+        return false;
+    }
+
+    bool accept(const TokenType type) {
+        if(t.type == type) {
+            t = l.next();
+            return true;
+        }
+        return false;
+    }
+
+    bool expect(const TokenType type) {
+        if(!accept(type)) {
+            error_message = "Parse error: got token ";
+            error_message += token_name(t.type);
+            error_message += " expected ";
+            error_message += token_name(type);
+            error_message += ".";
+            return false;
+        }
+        return true;
+    }
+
+    Lexer &l;
     std::vector<Node> nodes;
     std::vector<int> statements;
     Token t;
+    std::string error_message;
 };
 
 int main(int, char **) {
-    std::string input("1.0 + \n2.0*(aaa-b*c)");
+    std::string input("x = 1.0 + 2.0*3");
     Lexer tokenizer(input);
     Token t = tokenizer.next();
     while(t.type != TokenType::eof && t.type != TokenType::error) {
-        printf("Token: %s\n", token_rules[(size_t)t.type].typestr);
-        printf(" value: %s\n", t.contents.c_str());
+        printf("Token: %s\n", token_name(t.type));
+        printf(" value: \"%s\"\n", t.contents.c_str());
         printf(" line: %d\n col: %d\n", t.line_number, t.column_number);
         t = tokenizer.next();
     }
