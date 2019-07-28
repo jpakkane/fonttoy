@@ -249,42 +249,17 @@ private:
     }
 
     bool e2_arithmetic() {
-        return(e3_multiply());
+        return(e3_add());
     }
 
-    bool e3_multiply() {
-        if(!e4_divide()) {
-            return false;
-        }
-        Token mul_token = t;
-        if(accept(TokenType::multiply)) {
-            int left = nodes.size() - 1;
-            if(!e3_multiply()) {
-                return false;
-            }
-            int right = nodes.size() - 1;
-            nodes.emplace_back(NodeType::multiply, mul_token);
-            nodes.back().left = left;
-            nodes.back().right = right;
-        }
-        return true;
-    }
-
-    bool e4_divide() {
-        if(!e5_add()) {
-            return false;
-        }
-        return true;
-    }
-
-    bool e5_add() {
-        if(!e6_subtract()) {
+    bool e3_add() {
+        if(!e4_subtract()) {
             return false;
         }
         Token add_token = t;
         if(accept(TokenType::plus)) {
             int left = nodes.size() - 1;
-            if(!e5_add()) {
+            if(!e3_add()) {
                 return false;
             }
             int right = nodes.size() - 1;
@@ -295,7 +270,29 @@ private:
         return true;
     }
 
-    bool e6_subtract() {
+    bool e4_subtract() {
+        return e5_multiply();
+    }
+
+    bool e5_multiply() {
+        if(!e6_divide()) {
+            return false;
+        }
+        Token mul_token = t;
+        if(accept(TokenType::multiply)) {
+            int left = nodes.size() - 1;
+            if(!e5_multiply()) {
+                return false;
+            }
+            int right = nodes.size() - 1;
+            nodes.emplace_back(NodeType::multiply, mul_token);
+            nodes.back().left = left;
+            nodes.back().right = right;
+        }
+        return true;
+    }
+
+    bool e6_divide() {
         if(!e7_parentheses()) {
             return false;
         }
@@ -303,7 +300,7 @@ private:
     }
 
     bool e7_parentheses() {
-        if(!e9_token()) {
+        if(!e8_token()) {
             return false;
         }
         if(accept(TokenType::lparen)) {
@@ -317,7 +314,7 @@ private:
         return true;
     }
 
-    bool e9_token() {
+    bool e8_token() {
         auto current_token = t;
         if(accept(TokenType::id)) {
             nodes.emplace_back(NodeType::id, current_token);
