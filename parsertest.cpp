@@ -146,16 +146,17 @@ enum class NodeType : char {
     negate,
     parentheses,
     statement,
+    empty,
 };
 
 struct Node final {
     explicit Node(NodeType type, const Token &t)
-        : type(type), value(std::monostate()), left(-1), right(-1), line_number(t.line_number), column_number(t.column_number) {
+        : type(type), value(std::monostate()), left{}, right{}, line_number(t.line_number), column_number(t.column_number) {
     }
     NodeType type;
     std::variant<std::monostate, double, std::string> value;
-    int left;
-    int right;
+    std::optional<int> left;
+    std::optional<int> right;
     int line_number;
     int column_number;
 };
@@ -169,14 +170,19 @@ public:
         assert(nodes.size() == 0);
         assert(!is_error());
         t = l.next();
-        if(accept(TokenType::eof)) {
-            return true;
-        }
-        if(t.type >= TokenType::end_of_tokens) {
-            error_message = "Lexing failed: " + t.contents;
-            return false;
-        }
-        return statement();
+        do {
+            if(accept(TokenType::eof)) {
+                return true;
+            }
+            if(t.type >= TokenType::end_of_tokens) {
+                error_message = "Lexing failed: " + t.contents;
+                return false;
+            }
+            if(!e1_statement()) {
+                return false;
+            }
+        } while(!is_error());
+        return false;
     }
 
     const std::string get_error() const { return error_message; }
@@ -184,7 +190,7 @@ public:
 private:
     bool is_error() const { return !error_message.empty(); }
 
-    bool statement() {
+    bool e1_statement() {
         if(t.type != TokenType::id) {
             error_message = "Incorrect node type for statement: ";
             error_message += token_name(t.type);
@@ -199,7 +205,7 @@ private:
         auto assignment_index = nodes.size();
         nodes.emplace_back(NodeType::assignment, t);
         statements.push_back(assignment_index);
-        if(!expression()) {
+        if(!e2_arithmetic()) {
             return false;
         }
         if(!expect(TokenType::linefeed)) {
@@ -211,8 +217,42 @@ private:
         return true;
     }
 
-    bool expression() {
+    bool e2_arithmetic() {
         // FIXME: add implementation here.
+        return false;
+    }
+
+    bool e3_parentheses() {
+        if(!e4_token()) {
+            return false;
+        }
+        if(accept(TokenType::lparen)) {
+            if(!e2_arithmetic()) {
+                return false;
+            }
+            if(!expect(TokenType::rparen)) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    bool e4_token() {
+        auto current_token = t;
+        if(accept(TokenType::id)) {
+            nodes.emplace_back(NodeType::id, current_token);
+            nodes.back().value = current_token.contents;
+            return true;
+        }
+        if(accept(TokenType::number)) {
+            nodes.emplace_back(NodeType::number, current_token);
+            // WARNING: locale dependent! FIXME.
+            nodes.back().value = strtod(current_token.contents.c_str(), nullptr);
+            return true;
+        }
+        std::string err{"Got unexpected token: "};
+        err += token_name(t.type);
+        set_error(err.c_str(), t.line_number, t.column_number);
         return false;
     }
 
@@ -226,14 +266,24 @@ private:
 
     bool expect(const TokenType type) {
         if(!accept(type)) {
-            error_message = "Parse error: got token ";
-            error_message += token_name(t.type);
-            error_message += " expected ";
-            error_message += token_name(type);
-            error_message += ".";
+            std::string err = "Parse error: got token ";
+            err += token_name(t.type);
+            err += " expected ";
+            err += token_name(type);
+            err += ".";
+            set_error(err.c_str(), t.line_number, t.column_number);
             return false;
         }
         return true;
+    }
+
+    void set_error(const char *msg, int line_number, int column_number) {
+        assert(error_message.empty());
+        error_message = std::to_string(line_number);
+        error_message += ':';
+        error_message += std::to_string(column_number);
+        error_message += ' ';
+        error_message += msg;
     }
 
     Lexer &l;
