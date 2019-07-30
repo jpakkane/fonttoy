@@ -1,0 +1,36 @@
+Some proposals and thinking of syntax
+
+p1.x = r
+pi.y = E1
+p2.x = w/2
+p2.y = r
+p3.x = w - r
+p3.y = E3
+p4.x = w/2
+p5.y = h - E4
+p6.x = w/2
+p6.y = h-r
+p7.x = w-r
+p7.y = h-E2
+
+Metafont bean character:
+
+%file name: beta.mf
+%mode_setup;
+% Define a beanlike shape for the character B
+beginchar("B",11pt#,11pt#,0);
+  % Setup coordinates as an equation system
+  y1=y2=y3=0;
+  y4=y5=y6=h;
+  x1=x4=0;
+  x2=x5=w;
+  x3=x6=2*w;
+
+  % Define pen
+  pickup pencircle xscaled 0.2w yscaled 0.04w rotated 45;
+
+  % Draw the character curve
+  draw z1..z3..z6{z2-z6}..z5..{z4-z2}z4..cycle;
+endchar;
+
+end
