@@ -12,7 +12,10 @@ if host_machine.cpu().startswith('wasm')
         copy: true)
 endif
 
+l = static_library('flib', 'fonttoy.cpp', 'svgexporter.cpp', 'constraints.cpp', 'parser.cpp')
+
 executable('fonttoy', 'main.cpp', 'fonttoy.cpp', 'svgexporter.cpp', 'constraints.cpp',
+    link_with: l,
     dependencies: [tinyxml2_dep, lbfgs_dep])
 
-executable('parsertest', 'parsertest.cpp')
+executable('parsertest', 'parsertest.cpp', link_with: l)
