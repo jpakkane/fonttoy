@@ -510,7 +510,7 @@ std::optional<double> Interpreter::eval_fncall(const Node &n) {
     } else {
         auto res = fp->funcall(fname, args);
         if(std::holds_alternative<std::string>(res)) {
-            set_error(std::get<std::string>(res), n);
+            set_error(fname + ": " + std::get<std::string>(res), n);
             return std::optional<double>();
         }
         return std::get<double>(res);

@@ -19,6 +19,7 @@
 #include <fonttoy.hpp>
 #include <constraints.hpp>
 #include <svgexporter.hpp>
+#include <parser.hpp>
 #include <vector>
 #include <lbfgs.h>
 #include <cassert>
@@ -199,6 +200,136 @@ Stroke calculate_sample() {
     return s;
 }
 
+const char *program = R"(
+h = 1.0
+w = 0.7
+e1 = 0.2
+e2 = h - e1
+e3 = 0.27
+e4 = h - e3
+r = 0.05
+
+Stroke(6)
+FixedConstraint(0, r, e1)
+FixedConstraint(3, w / 2, r)
+FixedConstraint(6, w - r, e3)
+FixedConstraint(9, w / 2, h / 2)
+FixedConstraint(12, r, e4)
+FixedConstraint(15, w / 2, h - r)
+FixedConstraint(18, w - r, e2)
+
+DirectionConstraint(3, 2, pi)
+MirrorConstraint(4, 2, 3)
+DirectionConstraint(6, 5, 3.0 * pi / 2.0)
+SmoothConstraint(7, 5, 6)
+AngleConstraint(8, 9, (360.0 - 15.0) / 360.0 * 2.0 * pi, (360.0 - 1.0) / 360.0 * 2.0 * pi)
+MirrorConstraint(10, 8, 9)
+DirectionConstraint(12, 11, 3.0 * pi / 2.0)
+SmoothConstraint(13, 11, 12)
+SameOffsetConstraint(14, 15, 2, 3)
+MirrorConstraint(16, 14, 15)
+SameOffsetConstraint(17, 18, 0, 1)
+)";
+
+class Bridge : public ExternalFuncall {
+public:
+    funcall_result funcall(const std::string &funname, const std::vector<double> &args) override {
+        if(funname == "Stroke") {
+            if(s) {
+                return "Second call to stroke.";
+            }
+            if(args.size() != 1) {
+                return "Wrong number of arguments.";
+            }
+            s.reset(new Stroke(args[0]));
+            return 0.0;
+        } else if(funname == "FixedConstraint") {
+            if(!s) {
+                return "Stroke not set.";
+            }
+            if(args.size() != 3) {
+                return "Wrong number of arguments.";
+            }
+            s->add_constraint(std::make_unique<FixedConstraint>(args[0], Point(args[1], args[2])));
+            return 0.0;
+        } else if(funname == "DirectionConstraint") {
+            if(!s) {
+                return "Stroke not set.";
+            }
+            if(args.size() != 3) {
+                return "Wrong number of arguments.";
+            }
+            s->add_constraint(std::make_unique<DirectionConstraint>(args[0], args[1], args[2]));
+            return 0.0;
+        } else if(funname == "MirrorConstraint") {
+            if(!s) {
+                return "Stroke not set.";
+            }
+            if(args.size() != 3) {
+                return "Wrong number of arguments.";
+            }
+            s->add_constraint(std::make_unique<MirrorConstraint>(args[0], args[1], args[2]));
+            return 0.0;
+        } else if(funname == "SmoothConstraint") {
+            if(!s) {
+                return "Stroke not set.";
+            }
+            if(args.size() != 3) {
+                return "Wrong number of arguments.";
+            }
+            s->add_constraint(std::make_unique<SmoothConstraint>(args[0], args[1], args[2]));
+            return 0.0;
+        } else if(funname == "AngleConstraint") {
+            if(!s) {
+                return "Stroke not set.";
+            }
+            if(args.size() != 4) {
+                return "Wrong number of arguments.";
+            }
+            s->add_constraint(std::make_unique<AngleConstraint>(args[0], args[1], args[2], args[3]));
+            return 0.0;
+        } else if(funname == "SameOffsetConstraint") {
+            if(!s) {
+                return "Stroke not set.";
+            }
+            if(args.size() != 4) {
+                return "Wrong number of arguments.";
+            }
+            s->add_constraint(std::make_unique<SameOffsetConstraint>(args[0], args[1], args[2], args[3]));
+            return 0.0;
+        } else {
+            return "Unknown function.";
+        }
+        return 0;
+    }
+
+    Stroke& get_stroke() {
+        assert(s);
+        return *s.get();
+    }
+
+private:
+    std::unique_ptr<Stroke> s;
+};
+
+Stroke calculate_sample_dynamically() {
+    Bridge b;
+    Lexer l(program);
+    Parser p(l);
+    Interpreter i(p, &b);
+
+    if(!p.parse()) {
+        printf("Parser fail: %s\n", p.get_error().c_str());
+        assert(0);
+    }
+    if(!i.execute_program()) {
+        printf("Interpreter fail: %s\n", i.get_error().c_str());
+        assert(0);
+    }
+    optimize(&b.get_stroke());
+    return std::move(b.get_stroke());
+}
+
 #if defined(WASM)
 
 extern "C" {
@@ -230,7 +361,7 @@ int main(int argc, char **) {
 int main(int, char **) {
     debug_svgs = true;
     SvgExporter e;
-    Stroke s = calculate_sample();
+    Stroke s = calculate_sample_dynamically();
     write_svg(s, "output.svg");
 
     printf("All done, bye-bye.\n");
