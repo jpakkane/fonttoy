@@ -230,25 +230,24 @@ private:
             set_error("Something really weird has happened.", -1, -1);
             return false;
         }
-        if(nodes.back().type != NodeType::id) {
-            std::string err = "Incorrect node type for statement: ";
-            err += token_name(t.type);
-            set_error(err.c_str(), nodes.back().line_number, nodes.back().column_number);
-            return false;
+        if(nodes.back().type == NodeType::id) {
+            if(!expect(TokenType::equal)) {
+                set_error("Missing equals sign", t.line_number, t.column_number);
+                return false;
+            }
+            int id_index = nodes.size()-1;
+            if(!e3_expression()) {
+                return false;
+            }
+            int val_index = nodes.size()-1;
+            nodes.emplace_back(NodeType::assignment, t);
+            statements.push_back(nodes.size()-1);
+            nodes.back().left = id_index;
+            nodes.back().right = val_index;
+        } else {
+            // A plain expression like: fun_call(1)
+            statements.push_back(nodes.size()-1);
         }
-        if(!expect(TokenType::equal)) {
-            set_error("Missing equals sign", t.line_number, t.column_number);
-            return false;
-        }
-        int id_index = nodes.size()-1;
-        if(!e3_expression()) {
-            return false;
-        }
-        int val_index = nodes.size()-1;
-        nodes.emplace_back(NodeType::assignment, t);
-        statements.push_back(nodes.size()-1);
-        nodes.back().left = id_index;
-        nodes.back().right = val_index;
         if(!expect(TokenType::linefeed)) {
             return false;
         }
@@ -415,10 +414,30 @@ private:
     std::string error_message;
 };
 
+typedef std::variant<double, std::string> funcall_result;
+
+class ExternalFuncall {
+public:
+    virtual ~ExternalFuncall() = default;
+
+    virtual funcall_result funcall(const std::string &funname, const std::vector<double> &args) = 0;
+};
+
+class FuncallPrinter : public ExternalFuncall {
+
+    funcall_result funcall(const std::string &funname, const std::vector<double> &) override {
+        printf("Function %s called.\n", funname.c_str());
+        if(funname == "bad_function") {
+            return "Bad function name.";
+        }
+        return 0.0;
+    }
+};
+
 class Interpreter final {
 public:
 
-    explicit Interpreter(const Parser &p) : nodes(p.get_nodes()), statements(p.get_statements()) {
+    explicit Interpreter(const Parser &p, ExternalFuncall *fp) : nodes(p.get_nodes()), statements(p.get_statements()), fp(fp) {
         set_variable("pi", M_PI);
         set_variable("e", M_E);
     }
@@ -431,10 +450,9 @@ public:
                     return false;
                 }
             } else {
-                std::string err("Unknown node type ");
-                err += node_name(n.type);
-                set_error(err, n.line_number, n.column_number);
-                return false;
+                if(!expression(n)) {
+                    return false;
+                }
             }
         }
         return true;
@@ -479,6 +497,7 @@ private:
         case NodeType::plus: return eval_plus(n);
         case NodeType::id: return eval_variable(n);
         case NodeType::fncall: return eval_fncall(n);
+        case NodeType::empty: return 0.0;
         default:
             std::string err("Unknown node type: ");
             err += node_name(n.type);
@@ -564,10 +583,12 @@ private:
             }
             return cos(args[0]);
         } else {
-            std::string err("Unknown function: ");
-            err += fname;
-            set_error(err, n);
-            return std::optional<double>();
+            auto res = fp->funcall(fname, args);
+            if(std::holds_alternative<std::string>(res)) {
+                set_error(std::get<std::string>(res), n);
+                return std::optional<double>();
+            }
+            return std::get<double>(res);
         }
     }
 
@@ -592,11 +613,11 @@ private:
     const std::vector<int> &statements;
     std::string error_message;
     std::unordered_map<std::string, double> variables;
-
+    ExternalFuncall *fp;
 };
 
 int main(int, char **) {
-    std::string input("y=2\nx = 3*cos(y*pi)");
+    std::string input("y=2\nx = 3*cos(y*pi)\nbad_function()\n");
     //std::string input("x = (1 + 2)*3");
     Lexer tokenizer(input);
     Parser p(tokenizer);
@@ -604,7 +625,8 @@ int main(int, char **) {
         printf("Parser error: %s\n", p.get_error().c_str());
         return 1;
     }
-    Interpreter i(p);
+    FuncallPrinter fp;
+    Interpreter i(p, &fp);
     if(!i.execute_program()) {
         printf("Interpreter error: %s\n", i.get_error().c_str());
         return 1;
