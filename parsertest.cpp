@@ -395,47 +395,77 @@ public:
         return true;
     }
 
-    double get_variable(const char *varname) const {
+    std::optional<double> get_variable(const char *varname) const {
         return get_variable(std::string(varname));
     }
 
-    double get_variable(const std::string &varname) const {
+    std::optional<double> get_variable(const std::string &varname) const {
         auto node = variables.find(varname);
-        assert(node != variables.end());
-        return node->second;
+        if(node != variables.end()) {
+            return node->second;
+        }
+        return std::optional<double>();
     }
 
     const std::string& get_error() const { return error_message; }
 
 private:
 
-    void set_variable(const std::string &name, double value) {
+    bool set_variable(const std::string &name, double value) {
+        // FIXME, check that we don't override global constants.
         variables[name] = value;
+        return true;
     }
 
     bool assignment(const Node &n) {
         assert(n.type == NodeType::assignment);
         const std::string &varname = std::get<std::string>(nodes[n.left.value()].value);
-        double value = expression(nodes[n.right.value()]);
-        printf("Setting variable %s to %f\n", varname.c_str(), value);
-        set_variable(varname, value);
-        return true;
+        auto value = expression(nodes[n.right.value()]);
+        if(!value) {
+            return false;
+        }
+        return set_variable(varname, value.value());
     }
 
-    double expression(const Node &n) {
+    std::optional<double> expression(const Node &n) {
         if(n.type == NodeType::number) {
             return std::get<double>(n.value);
         } else if(n.type == NodeType::multiply) {
-            double lval = expression(nodes[n.left.value()]);
-            double rval = expression(nodes[n.right.value()]);
-            return lval*rval;
+            auto lval = expression(nodes[n.left.value()]);
+            if(!lval) {
+                return lval;
+            }
+            auto rval = expression(nodes[n.right.value()]);
+            if(!rval) {
+                return rval;
+            }
+            return *lval * *rval;
         } else if(n.type == NodeType::plus) {
-            double lval = expression(nodes[n.left.value()]);
-            double rval = expression(nodes[n.right.value()]);
-            return lval+rval;
+            auto lval = expression(nodes[n.left.value()]);
+            if(!lval) {
+                return lval;
+            }
+            auto rval = expression(nodes[n.right.value()]);
+            if(!rval) {
+                return rval;
+            }
+            return *lval + *rval;
+        } else if(n.type == NodeType::id) {
+            const auto &varname = std::get<std::string>(n.value);
+            auto val = get_variable(varname);
+            if(!val) {
+                std::string err("Unknown variable: ");
+                err += varname;
+                err += ".";
+                set_error(err, n);
+                return std::optional<double>();
+            }
+            return val.value();
         } else {
-            printf("Unknown node type: %s\n", node_name(n.type));
-            return 0.0;
+            std::string err("Unknown node type: ");
+            err += node_name(n.type);
+            set_error(err, n);
+            return std::optional<double>();
         }
     }
 
@@ -452,6 +482,10 @@ private:
         set_error(msg.c_str(), line_number, column_number);
     }
 
+    void set_error(const std::string &msg, const Node &n) {
+        set_error(msg, n.line_number, n.column_number);
+    }
+
     const std::vector<Node> &nodes;
     const std::vector<int> &statements;
     std::string error_message;
@@ -460,7 +494,7 @@ private:
 };
 
 int main(int, char **) {
-    std::string input("x = 1.0 + 2.0*3");
+    std::string input("y=1\nx = y + 2.0*3");
     Lexer tokenizer(input);
     Parser p(tokenizer);
     if(!p.parse()) {
@@ -472,5 +506,6 @@ int main(int, char **) {
         printf("Interpreter error: %s\n", i.get_error().c_str());
         return 1;
     }
+    printf("Value of %s is %f\n", "x", *i.get_variable("x"));
     return 0;
 }
