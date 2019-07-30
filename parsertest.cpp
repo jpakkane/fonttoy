@@ -295,7 +295,21 @@ private:
     }
 
     bool e5_subtract() {
-        return e6_multiply();
+        if(!e6_multiply()) {
+            return false;
+        }
+        Token minus_token = t;
+        if(accept(TokenType::minus)) {
+            int left = nodes.size() - 1;
+            if(!e5_subtract()) {
+                return false;
+            }
+            int right = nodes.size() - 1;
+            nodes.emplace_back(NodeType::minus, minus_token);
+            nodes.back().left = left;
+            nodes.back().right = right;
+        }
+        return true;
     }
 
     bool e6_multiply() {
@@ -319,6 +333,17 @@ private:
     bool e7_divide() {
         if(!e8_parentheses()) {
             return false;
+        }
+        Token div_token = t;
+        if(accept(TokenType::divide)) {
+            int left = nodes.size() - 1;
+            if(!e7_divide()) {
+                return false;
+            }
+            int right = nodes.size() - 1;
+            nodes.emplace_back(NodeType::divide, div_token);
+            nodes.back().left = left;
+            nodes.back().right = right;
         }
         return true;
     }
@@ -494,7 +519,9 @@ private:
         switch(n.type) {
         case NodeType::number: return std::get<double>(n.value);
         case NodeType::multiply: return eval_multiply(n);
+        case NodeType::divide: return eval_divide(n);
         case NodeType::plus: return eval_plus(n);
+        case NodeType::minus: return eval_minus(n);
         case NodeType::id: return eval_variable(n);
         case NodeType::fncall: return eval_fncall(n);
         case NodeType::empty: return 0.0;
@@ -518,6 +545,22 @@ private:
         return *lval * *rval;
     }
 
+    std::optional<double> eval_divide(const Node &n) {
+        auto lval = expression(nodes[n.left.value()]);
+        if(!lval) {
+            return lval;
+        }
+        auto rval = expression(nodes[n.right.value()]);
+        if(!rval) {
+            return rval;
+        }
+        if(fabs(*rval) < 0.00001) {
+            set_error("Divide by zero.", n);
+            return std::optional<double>();
+        }
+        return *lval / *rval;
+    }
+
     std::optional<double> eval_plus(const Node &n) {
         auto lval = expression(nodes[n.left.value()]);
         if(!lval) {
@@ -528,6 +571,18 @@ private:
             return rval;
         }
         return *lval + *rval;
+    }
+
+    std::optional<double> eval_minus(const Node &n) {
+        auto lval = expression(nodes[n.left.value()]);
+        if(!lval) {
+            return lval;
+        }
+        auto rval = expression(nodes[n.right.value()]);
+        if(!rval) {
+            return rval;
+        }
+        return *lval - *rval;
     }
 
     std::optional<double> eval_variable(const Node &n) {
@@ -617,7 +672,7 @@ private:
 };
 
 int main(int, char **) {
-    std::string input("y=2\nx = 3*cos(y*pi)\nbad_function()\n");
+    std::string input("y=2\nx = 3*cos(0-y*pi)/1\nhello()\n");
     //std::string input("x = (1 + 2)*3");
     Lexer tokenizer(input);
     Parser p(tokenizer);
