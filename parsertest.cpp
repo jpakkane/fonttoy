@@ -5,6 +5,7 @@
 #include <unordered_map>
 #include <cstdio>
 #include <cassert>
+#include <cmath>
 
 // These are in matching priority order.
 
@@ -22,6 +23,7 @@ enum class TokenType : char {
     linefeed,
     lparen,
     rparen,
+    comma,
     end_of_tokens,
     error,
     eof,
@@ -43,7 +45,7 @@ struct TokenDefinition {
 
 const std::vector<TokenDefinition> token_rules{
     {TokenType::id,            "id",         std::regex(R"(^[a-zA-Z_]+[a-zA-Z0-9_]*)")},
-    {TokenType::number,        "number",     std::regex(R"(^[0-9]+(.[0-9]*)?)")},
+    {TokenType::number,        "number",     std::regex(R"(^[0-9]+(\.[0-9]*)?)")},
     {TokenType::plus,          "plus",       std::regex(R"(^\+)")},
     {TokenType::minus,         "minus",      std::regex(R"(^-)")},
     {TokenType::multiply,      "multiply",   std::regex(R"(^\*)")},
@@ -55,6 +57,7 @@ const std::vector<TokenDefinition> token_rules{
     {TokenType::linefeed,      "linefeed",   std::regex(R"(^\n)")},
     {TokenType::lparen,        "lparen",     std::regex(R"(^\()")},
     {TokenType::rparen,        "rparen",     std::regex(R"(^\))")},
+    {TokenType::comma,         "comma",      std::regex(R"(^,)")},
     {TokenType::end_of_tokens, "eot",        std::regex("^DONOTMATCH¤")}, // Never produced.
     {TokenType::error,         "error",      std::regex("^DONOTMATCH§")},
     {TokenType::eof,           "eof",        std::regex("^DONOTMATCH½")},
@@ -147,6 +150,8 @@ enum class NodeType : char {
     negate,
     parentheses,
     statement,
+    comma,
+    fncall,
     empty,
 };
 
@@ -161,6 +166,8 @@ const std::vector<const char *> node_names{
     "negate",
     "parentheses",
     "statement",
+    "comma",
+    "fncall",
     "empty",
 };
 
@@ -216,7 +223,7 @@ private:
     bool is_error() const { return !error_message.empty(); }
 
     bool e1_statement() {
-        if(!e2_arithmetic()) {
+        if(!e3_expression()) {
             return false;
         }
         if(nodes.empty()) {
@@ -234,7 +241,7 @@ private:
             return false;
         }
         int id_index = nodes.size()-1;
-        if(!e2_arithmetic()) {
+        if(!e3_expression()) {
             return false;
         }
         int val_index = nodes.size()-1;
@@ -248,18 +255,36 @@ private:
         return true;
     }
 
-    bool e2_arithmetic() {
-        return(e3_add());
+    bool e2_comma() {
+        if(!e3_expression()) {
+            return false;
+        }
+        Token comma_token = t;
+        if(accept(TokenType::comma)) {
+            int left = nodes.size() - 1;
+            if(!e2_comma()) {
+                return false;
+            }
+            int right = nodes.size() - 1;
+            nodes.emplace_back(NodeType::comma, comma_token);
+            nodes.back().left = left;
+            nodes.back().right = right;
+        }
+        return true;
     }
 
-    bool e3_add() {
-        if(!e4_subtract()) {
+    bool e3_expression() {
+        return e4_add();
+    }
+
+    bool e4_add() {
+        if(!e5_subtract()) {
             return false;
         }
         Token add_token = t;
         if(accept(TokenType::plus)) {
             int left = nodes.size() - 1;
-            if(!e3_add()) {
+            if(!e4_add()) {
                 return false;
             }
             int right = nodes.size() - 1;
@@ -270,18 +295,18 @@ private:
         return true;
     }
 
-    bool e4_subtract() {
-        return e5_multiply();
+    bool e5_subtract() {
+        return e6_multiply();
     }
 
-    bool e5_multiply() {
-        if(!e6_divide()) {
+    bool e6_multiply() {
+        if(!e7_divide()) {
             return false;
         }
         Token mul_token = t;
         if(accept(TokenType::multiply)) {
             int left = nodes.size() - 1;
-            if(!e5_multiply()) {
+            if(!e6_multiply()) {
                 return false;
             }
             int right = nodes.size() - 1;
@@ -292,29 +317,51 @@ private:
         return true;
     }
 
-    bool e6_divide() {
-        if(!e7_parentheses()) {
+    bool e7_divide() {
+        if(!e8_parentheses()) {
             return false;
         }
         return true;
     }
 
-    bool e7_parentheses() {
-        if(!e8_token()) {
+    bool e8_parentheses() {
+        if(!e9_token()) {
             return false;
         }
+        Token previous = t;
         if(accept(TokenType::lparen)) {
-            if(!e2_arithmetic()) {
-                return false;
-            }
-            if(!expect(TokenType::rparen)) {
-                return false;
+            if(nodes.back().type == NodeType::empty) {
+                // Parenthesized evaluation: 3*(1+2)
+                if(!e3_expression()) {
+                    return false;
+                }
+                if(!expect(TokenType::rparen)) {
+                    return false;
+                }
+            } else if(nodes.back().type == NodeType::id) {
+                // Function call: max(1, 2)
+                int left = nodes.size()-1;
+                if(!e2_comma()) {
+                    return false;
+                }
+                if(!expect(TokenType::rparen)) {
+                    return false;
+                }
+                int right = nodes.size()-1;
+                nodes.emplace_back(NodeType::fncall, previous);
+                nodes.back().left = left;
+                nodes.back().right = right;
+                return true;
+            } else {
+                // Multiplication, e.g.: 3(1+2)
+                printf("Not implemented yet.\n");
+                assert(false);
             }
         }
         return true;
     }
 
-    bool e8_token() {
+    bool e9_token() {
         auto current_token = t;
         if(accept(TokenType::id)) {
             nodes.emplace_back(NodeType::id, current_token);
@@ -328,11 +375,6 @@ private:
             return true;
         }
         nodes.emplace_back(NodeType::empty, t);
-        /*
-        std::string err{"Got unexpected token: "};
-        err += token_name(t.type);
-        set_error(err.c_str(), t.line_number, t.column_number);
-        */
         return true;
     }
 
@@ -376,7 +418,9 @@ private:
 class Interpreter final {
 public:
 
-    explicit Interpreter(const Parser &p) : nodes(p.get_nodes()), statements(p.get_statements()) {}
+    explicit Interpreter(const Parser &p) : nodes(p.get_nodes()), statements(p.get_statements()) {
+        set_variable("pi", M_PI);
+    }
 
     bool execute_program() {
         for(const auto statement: statements) {
@@ -428,42 +472,99 @@ private:
     }
 
     std::optional<double> expression(const Node &n) {
-        if(n.type == NodeType::number) {
-            return std::get<double>(n.value);
-        } else if(n.type == NodeType::multiply) {
-            auto lval = expression(nodes[n.left.value()]);
-            if(!lval) {
-                return lval;
-            }
-            auto rval = expression(nodes[n.right.value()]);
-            if(!rval) {
-                return rval;
-            }
-            return *lval * *rval;
-        } else if(n.type == NodeType::plus) {
-            auto lval = expression(nodes[n.left.value()]);
-            if(!lval) {
-                return lval;
-            }
-            auto rval = expression(nodes[n.right.value()]);
-            if(!rval) {
-                return rval;
-            }
-            return *lval + *rval;
-        } else if(n.type == NodeType::id) {
-            const auto &varname = std::get<std::string>(n.value);
-            auto val = get_variable(varname);
-            if(!val) {
-                std::string err("Unknown variable: ");
-                err += varname;
-                err += ".";
-                set_error(err, n);
-                return std::optional<double>();
-            }
-            return val.value();
-        } else {
+        switch(n.type) {
+        case NodeType::number: return std::get<double>(n.value);
+        case NodeType::multiply: return eval_multiply(n);
+        case NodeType::plus: return eval_plus(n);
+        case NodeType::id: return eval_variable(n);
+        case NodeType::fncall: return eval_fncall(n);
+        default:
             std::string err("Unknown node type: ");
             err += node_name(n.type);
+            set_error(err, n);
+            return std::optional<double>();
+        }
+    }
+
+    std::optional<double> eval_multiply(const Node &n) {
+        auto lval = expression(nodes[n.left.value()]);
+        if(!lval) {
+            return lval;
+        }
+        auto rval = expression(nodes[n.right.value()]);
+        if(!rval) {
+            return rval;
+        }
+        return *lval * *rval;
+    }
+
+    std::optional<double> eval_plus(const Node &n) {
+        auto lval = expression(nodes[n.left.value()]);
+        if(!lval) {
+            return lval;
+        }
+        auto rval = expression(nodes[n.right.value()]);
+        if(!rval) {
+            return rval;
+        }
+        return *lval + *rval;
+    }
+
+    std::optional<double> eval_variable(const Node &n) {
+        const auto &varname = std::get<std::string>(n.value);
+        auto val = get_variable(varname);
+        if(!val) {
+            std::string err("Unknown variable: ");
+            err += varname;
+            err += ".";
+            set_error(err, n);
+            return std::optional<double>();
+        }
+        return val.value();
+    }
+
+    std::optional<std::vector<double>> eval_arguments(const Node &n) {
+        std::vector<double> args;
+        if(!eval_args_recursive(args, n)) {
+            return std::optional<std::vector<double>>();
+        }
+        return args;
+    }
+
+    bool eval_args_recursive(std::vector<double> &args, const Node &n) {
+        if(n.type == NodeType::comma) {
+            if(!eval_args_recursive(args, nodes[n.left.value()])) {
+                return false;
+            }
+            if(!eval_args_recursive(args, nodes[n.right.value()])) {
+                return false;
+            }
+            return true;
+        }
+        auto v = expression(n);
+        if(!v) {
+            return false;
+        }
+        args.push_back(*v);
+        return true;
+    }
+
+    std::optional<double> eval_fncall(const Node &n) {
+        auto argsp = eval_arguments(nodes[n.right.value()]);
+        if(!argsp) {
+            return std::optional<double>();
+        }
+        const auto &args = *argsp;
+        const auto &fname = std::get<std::string>(nodes[n.left.value()].value);
+        if(fname == "cos") {
+            if(args.size() != 1) {
+                set_error("Incorrect number of arguments.", n);
+                return std::optional<double>();
+            }
+            return cos(args[0]);
+        } else {
+            std::string err("Unknown function: ");
+            err += fname;
             set_error(err, n);
             return std::optional<double>();
         }
@@ -494,7 +595,8 @@ private:
 };
 
 int main(int, char **) {
-    std::string input("y=1\nx = y + 2.0*3");
+    std::string input("y=2\nx = 3*cos(y*pi)");
+    //std::string input("x = (1 + 2)*3");
     Lexer tokenizer(input);
     Parser p(tokenizer);
     if(!p.parse()) {
