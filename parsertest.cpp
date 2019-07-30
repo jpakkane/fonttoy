@@ -420,6 +420,7 @@ public:
 
     explicit Interpreter(const Parser &p) : nodes(p.get_nodes()), statements(p.get_statements()) {
         set_variable("pi", M_PI);
+        set_variable("e", M_E);
     }
 
     bool execute_program() {
