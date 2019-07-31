@@ -22,9 +22,7 @@
 #include <variant>
 #include <optional>
 #include <unordered_map>
-#include <cstdio>
 #include <cassert>
-#include <cmath>
 
 // These are in matching priority order.
 
@@ -170,11 +168,7 @@ class FuncallPrinter : public ExternalFuncall {
 
 class Interpreter final {
 public:
-    explicit Interpreter(const Parser &p, ExternalFuncall *fp)
-        : nodes(p.get_nodes()), statements(p.get_statements()), fp(fp) {
-        set_variable("pi", M_PI);
-        set_variable("e", M_E);
-    }
+    Interpreter(const Parser &p, ExternalFuncall *fp);
 
     bool execute_program();
 

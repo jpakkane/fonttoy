@@ -20,6 +20,7 @@
 #include <cmath>
 #include <cassert>
 #include <unordered_set>
+#include <algorithm>
 
 Vector Point::operator-(const Point &other) const { return Vector(x_ - other.x_, y_ - other.y_); }
 

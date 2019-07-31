@@ -15,8 +15,13 @@
   along with this program; if not, see <http://www.gnu.org/licenses/>.
 */
 
+#ifndef _USE_MATH_DEFINES
+#define _USE_MATH_DEFINES
+#endif
+
 #include <parser.hpp>
 #include <regex>
+#include <cmath>
 
 struct TokenDefinition {
     TokenType type;
@@ -29,6 +34,10 @@ struct TokenDefinition {
 
 // In C++ regexes "match" does not mean "starts with" but "matches all of".
 // Thus we need to use search combined with ^.
+
+// WARNING: either Gcc or VS is buggy. The former matches '^foo' as
+// "find foo starting fromthe beginning of the given string" whereas the
+// latter does "find foo following a line feed anywhere in the string".
 
 // clang-format off
 
@@ -82,6 +91,7 @@ Token Lexer::next() {
         }
         std::cmatch m;
         if(std::regex_search(text.c_str() + byte_offset, m, tr.r)) {
+            assert(m.prefix().length() == 0); // You found it, you get to fix it.
             auto &submatch = m[0];
             t.type = tr.type;
             t.contents = text.substr(byte_offset, submatch.length());
@@ -155,7 +165,6 @@ bool Parser::e1_statement() {
     }
     if(nodes.back().type == NodeType::id) {
         if(!expect(TokenType::equal)) {
-            set_error("Missing equals sign", t.line_number, t.column_number);
             return false;
         }
         int id_index = nodes.size() - 1;
@@ -349,6 +358,12 @@ void Parser::set_error(const char *msg, int line_number, int column_number) {
     error_message += std::to_string(column_number);
     error_message += ' ';
     error_message += msg;
+}
+
+Interpreter::Interpreter(const Parser &p, ExternalFuncall *fp)
+    : nodes(p.get_nodes()), statements(p.get_statements()), fp(fp) {
+    set_variable("pi", M_PI);
+    set_variable("e", M_E);
 }
 
 bool Interpreter::execute_program() {
