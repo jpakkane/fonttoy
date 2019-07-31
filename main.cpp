@@ -38,30 +38,7 @@ static_assert(sizeof(lbfgsfloatval_t) == sizeof(double));
 
 typedef double (*fptr)(const double *, const int);
 
-void estimate_derivative(fptr f, const double *x, double *g, double f0, double *h, double N) {
-    std::vector<double> x0(N);
-    int i;
-    for(int i = 0; i < N; i++) {
-        x0[i] = x[i];
-    }
-    for(i = 0; i < N; i++) {
-        double old_v = x0[i];
-        x0[i] += h[i];
-        double dx = h[i];
-        double df = f(&x0[0], N) - f0;
-        g[i] = df / dx;
-        x0[i] = old_v;
-    }
-}
-
 double maxd(const double d1, const double d2) { return d1 > d2 ? d1 : d2; }
-
-void compute_absolute_step(double rel_step, const double *x, double *h, const int N) {
-    for(int i = 0; i < N; ++i) {
-        double sign_x = x[i] >= 0 ? 1.0 : -1.0;
-        h[i] = rel_step * sign_x * maxd(1.0, fabs(x[i]));
-    }
-}
 
 std::vector<double> compute_absolute_step(double rel_step, const std::vector<double> &x) {
     std::vector<double> h;
@@ -168,43 +145,6 @@ void optimize(Stroke *s) {
     printf("Exit value: %d\n", ret);
     // insert final values back in the stroke here.
     s->calculate_value_for(variables);
-}
-
-Stroke calculate_sample() {
-    Stroke s(6);
-    const double h = 1.0;
-    const double w = 0.7;
-    const double e1 = 0.2;
-    const double e2 = h - e1;
-    const double e3 = 0.27;
-    const double e4 = h - e3;
-    const double r = 0.05;
-
-    // All points first
-    s.add_constraint(std::make_unique<FixedConstraint>(0, Point(r, e1)));
-    s.add_constraint(std::make_unique<FixedConstraint>(3, Point(w / 2, r)));
-    s.add_constraint(std::make_unique<FixedConstraint>(6, Point(w - r, e3)));
-    s.add_constraint(std::make_unique<FixedConstraint>(9, Point(w / 2, h / 2)));
-    s.add_constraint(std::make_unique<FixedConstraint>(12, Point(r, e4)));
-    s.add_constraint(std::make_unique<FixedConstraint>(15, Point(w / 2, h - r)));
-    s.add_constraint(std::make_unique<FixedConstraint>(18, Point(w - r, e2)));
-
-    // Then control points.
-    s.add_constraint(std::make_unique<DirectionConstraint>(3, 2, M_PI));
-    s.add_constraint(std::make_unique<MirrorConstraint>(4, 2, 3));
-    s.add_constraint(std::make_unique<DirectionConstraint>(6, 5, 3.0 * M_PI / 2.0));
-    s.add_constraint(std::make_unique<SmoothConstraint>(7, 5, 6));
-    s.add_constraint(std::make_unique<AngleConstraint>(
-        8, 9, (360.0 - 15.0) / 360.0 * 2.0 * M_PI, (360.0 - 1.0) / 360.0 * 2.0 * M_PI));
-    s.add_constraint(std::make_unique<MirrorConstraint>(10, 8, 9));
-    s.add_constraint(std::make_unique<DirectionConstraint>(12, 11, 3.0 * M_PI / 2.0));
-    s.add_constraint(std::make_unique<SmoothConstraint>(13, 11, 12));
-    s.add_constraint(std::make_unique<SameOffsetConstraint>(14, 15, 2, 3));
-    s.add_constraint(std::make_unique<MirrorConstraint>(16, 14, 15));
-    s.add_constraint(std::make_unique<SameOffsetConstraint>(17, 18, 0, 1));
-
-    optimize(&s);
-    return s;
 }
 
 class Bridge : public ExternalFuncall {
