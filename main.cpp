@@ -28,6 +28,9 @@
 #include <lbfgs.h>
 #include <cassert>
 #include <cmath>
+#if defined(WASM)
+#include<emscripten.h>
+#endif
 
 static bool debug_svgs = false;
 
@@ -278,6 +281,10 @@ public:
         return 0;
     }
 
+    bool has_stroke() {
+        return (bool)s;
+    }
+
     Stroke &get_stroke() {
         assert(s);
         return *s.get();
@@ -286,6 +293,57 @@ public:
 private:
     std::unique_ptr<Stroke> s;
 };
+
+std::variant<Stroke, std::string> calculate_sample_dynamically(const std::string &program) {
+    Bridge b;
+    Lexer l(program);
+    Parser p(l);
+    Interpreter i(p, &b);
+
+    if(!p.parse()) {
+        std::string err("Parser fail: ");
+        err += p.get_error();
+        return err;
+    }
+    if(!i.execute_program()) {
+        std::string err("Interpreter fail: ");
+        err += i.get_error();
+        return err;
+    }
+    if(!b.has_stroke()) {
+        return "Program did not define a bezier stroke.";
+    }
+    optimize(&b.get_stroke());
+    return std::move(b.get_stroke());
+}
+
+#if defined(WASM)
+
+extern "C" {
+
+int EMSCRIPTEN_KEEPALIVE wasm_entrypoint(char *buf) {
+    SvgExporter e;
+    std::string program(buf);
+    auto s = calculate_sample_dynamically(program);
+    if(std::holds_alternative<std::string>(s)) {
+        strcpy(buf, std::get<std::string>(s).c_str());
+        return 1;
+    }
+    SvgExporter svg;
+    put_beziers_in(std::get<Stroke>(s), svg);
+    std::string result = svg.to_string();
+    strcpy(buf, result.c_str());
+    return 0;
+}
+
+}
+
+int main(int, char **) {
+    printf("Fonttoy Wasm initialized.\n");
+    return 0;
+}
+
+#else
 
 std::string read_file(const char *fname) {
     FILE *f = fopen(fname, "r");
@@ -298,53 +356,6 @@ std::string read_file(const char *fname) {
     return std::string(buf.get(), buf.get() + num_read);
 }
 
-Stroke calculate_sample_dynamically(const char *fname) {
-    std::string program = read_file(fname);
-    Bridge b;
-    Lexer l(program);
-    Parser p(l);
-    Interpreter i(p, &b);
-
-    if(!p.parse()) {
-        printf("Parser fail: %s\n", p.get_error().c_str());
-        assert(0);
-    }
-    if(!i.execute_program()) {
-        printf("Interpreter fail: %s\n", i.get_error().c_str());
-        assert(0);
-    }
-    optimize(&b.get_stroke());
-    return std::move(b.get_stroke());
-}
-
-#if defined(WASM)
-
-extern "C" {
-
-// If this function is not referenced from main() below, emcc will just
-// remove it. That was a "fun" debugging experience.
-int wasm_entrypoint(char *buf) {
-    SvgExporter e;
-    Stroke s = calculate_sample();
-    SvgExporter svg;
-    put_beziers_in(s, svg);
-    std::string result = svg.to_string();
-    strcpy(buf, result.c_str());
-    printf("Something.\n");
-    return 42;
-}
-}
-
-int main(int argc, char **) {
-    printf("Initialized.\n");
-    if(argc == 1234567) {
-        wasm_entrypoint(nullptr);
-    }
-    return 0;
-}
-
-#else
-
 int main(int argc, char **argv) {
     debug_svgs = true;
     SvgExporter e;
@@ -352,8 +363,12 @@ int main(int argc, char **argv) {
         printf("%s <input file>\n", argv[0]);
         return 1;
     }
-    Stroke s = calculate_sample_dynamically(argv[1]);
-    write_svg(s, "output.svg");
+    std::string program = read_file(argv[1]);
+    auto s = calculate_sample_dynamically(program);
+    if(std::holds_alternative<std::string>(s)) {
+        printf("%s\n", std::get<std::string>(s).c_str());
+    }
+    write_svg(std::get<Stroke>(s), "output.svg");
 
     printf("All done, bye-bye.\n");
     return 0;

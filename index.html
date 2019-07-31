@@ -3,18 +3,21 @@
     <meta charset="utf-8">
     <script>
       function runWasm() {
-          var myStrValue = "abcdefghijklmnopqrstuvwxyz";
           // FIXME: use intArrayFromString for passing argument in.
-          var ptr  = allocate(80000, 'i8', ALLOC_NORMAL);
-
+          var bufSize = 80000;
+          var ptr  = allocate(bufSize, 'i8', ALLOC_NORMAL);
+          stringToUTF8(document.getElementById("programtext").value, ptr, bufSize);
           var retVal = _wasm_entrypoint(ptr);
-
-          var resValue = UTF8ToString(ptr);
-
+          var retStr = UTF8ToString(ptr);
           _free(ptr);
 
-          document.getElementById("outputnode").innerHTML = resValue;
-          document.getElementById("debugtext").value = resValue;
+          if(retVal == 0) {
+              document.getElementById("outputnode").innerHTML = retStr;
+              document.getElementById("debugtext").value = retStr;
+          } else {
+              document.getElementById("outputnode").innerHtml = "SAATANA";
+              document.getElementById("debugtext").value = retStr;
+          }
       }
     </script>
   </head>
@@ -23,14 +26,42 @@
     </script>
     <h1>Font toy Webassembly demo test page</h1>
     <p>
-      <button type="button" id="action" onclick="runWasm()">Run
-      WASM</button>
+      <textarea rows="30" cols="100" id="programtext">h = 1.0
+w = 0.7
+e1 = 0.2
+e2 = h - e1
+e3 = 0.27
+e4 = h - e3
+r = 0.05
+
+Stroke(6)
+FixedConstraint(0, r, e1)
+FixedConstraint(3, w / 2, r)
+FixedConstraint(6, w - r, e3)
+FixedConstraint(9, w / 2, h / 2)
+FixedConstraint(12, r, e4)
+FixedConstraint(15, w / 2, h - r)
+FixedConstraint(18, w - r, e2)
+
+DirectionConstraint(3, 2, pi)
+MirrorConstraint(4, 2, 3)
+DirectionConstraint(6, 5, 3.0 * pi / 2.0)
+SmoothConstraint(7, 5, 6)
+AngleConstraint(8, 9, (360.0 - 15.0) / 360.0 * 2.0 * pi, (360.0 - 1.0) / 360.0 * 2.0 * pi)
+MirrorConstraint(10, 8, 9)
+DirectionConstraint(12, 11, 3.0 * pi / 2.0)
+SmoothConstraint(13, 11, 12)
+SameOffsetConstraint(14, 15, 2, 3)
+MirrorConstraint(16, 14, 15)
+SameOffsetConstraint(17, 18, 0, 1)
+</textarea>
+    </p>
+    <p>
+      <button type="button" id="action" onclick="runWasm()">Calculate stroke</button>
     </p>
     <h2>WASM output area</h2>
-    <p>
       <div id="outputnode">
       </div>
-    </p>
     <h2>Text version of same</h2>
     <p>
       <textarea rows="20" cols="100" id="debugtext">Generated SVG will be put here in plaintext.</textarea>
