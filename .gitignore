@@ -8,7 +8,7 @@ __pycache__
 .pydevproject
 /proto/*.svg
 
-/subprojects/liblbfgs-1.10/
+/subprojects/liblbfgs-*
 /subprojects/packagecache/
-/subprojects/tinyxml2/
+/subprojects/tinyxml2-*
 
