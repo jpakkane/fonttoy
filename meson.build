@@ -12,9 +12,9 @@ if host_machine.cpu().startswith('wasm')
         copy: true)
 endif
 
-l = static_library('flib', 'fonttoy.cpp', 'svgexporter.cpp', 'constraints.cpp', 'parser.cpp')
+l = static_library('flib', 'fonttoy.cpp', 'constraints.cpp', 'parser.cpp')
 
-executable('fonttoy', 'main.cpp', 'fonttoy.cpp', 'svgexporter.cpp', 'constraints.cpp',
+executable('fonttoy', 'main.cpp', 'svgexporter.cpp', 'svgexporter.cpp',
     link_with: l,
     dependencies: [tinyxml2_dep, lbfgs_dep])
 

@@ -20,6 +20,7 @@
 #include <string>
 #include <vector>
 #include <variant>
+#include <optional>
 #include <unordered_map>
 #include <cstdio>
 #include <cassert>

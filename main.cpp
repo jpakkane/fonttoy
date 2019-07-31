@@ -200,37 +200,6 @@ Stroke calculate_sample() {
     return s;
 }
 
-const char *program = R"(
-h = 1.0
-w = 0.7
-e1 = 0.2
-e2 = h - e1
-e3 = 0.27
-e4 = h - e3
-r = 0.05
-
-Stroke(6)
-FixedConstraint(0, r, e1)
-FixedConstraint(3, w / 2, r)
-FixedConstraint(6, w - r, e3)
-FixedConstraint(9, w / 2, h / 2)
-FixedConstraint(12, r, e4)
-FixedConstraint(15, w / 2, h - r)
-FixedConstraint(18, w - r, e2)
-
-DirectionConstraint(3, 2, pi)
-MirrorConstraint(4, 2, 3)
-DirectionConstraint(6, 5, 3.0 * pi / 2.0)
-SmoothConstraint(7, 5, 6)
-AngleConstraint(8, 9, (360.0 - 15.0) / 360.0 * 2.0 * pi, (360.0 - 1.0) / 360.0 * 2.0 * pi)
-MirrorConstraint(10, 8, 9)
-DirectionConstraint(12, 11, 3.0 * pi / 2.0)
-SmoothConstraint(13, 11, 12)
-SameOffsetConstraint(14, 15, 2, 3)
-MirrorConstraint(16, 14, 15)
-SameOffsetConstraint(17, 18, 0, 1)
-)";
-
 class Bridge : public ExternalFuncall {
 public:
     funcall_result funcall(const std::string &funname, const std::vector<double> &args) override {
@@ -286,7 +255,8 @@ public:
             if(args.size() != 4) {
                 return "Wrong number of arguments.";
             }
-            s->add_constraint(std::make_unique<AngleConstraint>(args[0], args[1], args[2], args[3]));
+            s->add_constraint(
+                std::make_unique<AngleConstraint>(args[0], args[1], args[2], args[3]));
             return 0.0;
         } else if(funname == "SameOffsetConstraint") {
             if(!s) {
@@ -295,7 +265,8 @@ public:
             if(args.size() != 4) {
                 return "Wrong number of arguments.";
             }
-            s->add_constraint(std::make_unique<SameOffsetConstraint>(args[0], args[1], args[2], args[3]));
+            s->add_constraint(
+                std::make_unique<SameOffsetConstraint>(args[0], args[1], args[2], args[3]));
             return 0.0;
         } else {
             return "Unknown function.";
@@ -303,7 +274,7 @@ public:
         return 0;
     }
 
-    Stroke& get_stroke() {
+    Stroke &get_stroke() {
         assert(s);
         return *s.get();
     }
@@ -312,7 +283,19 @@ private:
     std::unique_ptr<Stroke> s;
 };
 
-Stroke calculate_sample_dynamically() {
+std::string read_file(const char *fname) {
+    FILE *f = fopen(fname, "r");
+    assert(f);
+    const int bufsize = 1000000;
+    // Must be heap allocated so no std::array.
+    std::unique_ptr<char[]> buf(new(char[bufsize]));
+    auto num_read = fread(buf.get(), 1, bufsize, f);
+    fclose(f);
+    return std::string(buf.get(), buf.get() + num_read);
+}
+
+Stroke calculate_sample_dynamically(const char *fname) {
+    std::string program = read_file(fname);
     Bridge b;
     Lexer l(program);
     Parser p(l);
@@ -358,10 +341,14 @@ int main(int argc, char **) {
 
 #else
 
-int main(int, char **) {
+int main(int argc, char **argv) {
     debug_svgs = true;
     SvgExporter e;
-    Stroke s = calculate_sample_dynamically();
+    if(argc != 2) {
+        printf("%s <input file>\n", argv[0]);
+        return 1;
+    }
+    Stroke s = calculate_sample_dynamically(argv[1]);
     write_svg(s, "output.svg");
 
     printf("All done, bye-bye.\n");
