@@ -29,22 +29,22 @@ SvgExporter::SvgExporter() {
 void SvgExporter::setup_canvas() {
     root = doc.NewElement("svg");
     root->SetAttribute("xmlns", "http://www.w3.org/2000/svg");
-    root->SetAttribute("width", "1200px");
-    root->SetAttribute("height", "1400px");
+    root->SetAttribute("width", "600px");
+    root->SetAttribute("height", "700px");
     doc.InsertFirstChild(root);
     auto bg = doc.NewElement("rect");
-    bg->SetAttribute("width", "1200px");
-    bg->SetAttribute("height", "1400px");
+    bg->SetAttribute("width", "600px");
+    bg->SetAttribute("height", "700px");
     bg->SetAttribute("fill", "white");
     root->InsertFirstChild(bg);
     auto t = doc.NewElement("g");
-    t->SetAttribute("transform", "translate(100, 1100)");
+    t->SetAttribute("transform", "translate(100, 550)");
     root->InsertEndChild(t);
     auto t2 = doc.NewElement("g");
     t2->SetAttribute("transform", "matrix(1, 0, 0, -1, 0, 0)");
     t->InsertEndChild(t2);
     canvas = doc.NewElement("g");
-    canvas->SetAttribute("transform", "scale(1000)");
+    canvas->SetAttribute("transform", "scale(500)");
     t2->InsertEndChild(canvas);
 
     draw_line(-20, 0, 20, 0, "black", 0.002, nullptr);
