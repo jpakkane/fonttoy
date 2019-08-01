@@ -24,7 +24,14 @@
   <body>
     <script src="fonttoy.js">
     </script>
-    <h1>Font toy Webassembly demo test page</h1>
+    <h1>Font toy Webassembly demo</h1>
+    <p>This page hosts a sample page for trying out a font (well,
+    currently only a stroke) design tool that is based on nonlinear
+      constraint optimization.</p>
+
+    <p>The source code is
+    available <a href="https://github.com/jpakkane/fonttoy">this
+    Github repository</a>.</p>
     <p>
       <textarea rows="30" cols="100" id="programtext">h = 1.0
 w = 0.7
@@ -59,12 +66,12 @@ SameOffsetConstraint(17, 18, 0, 1)
     <p>
       <button type="button" id="action" onclick="runWasm()">Calculate stroke</button>
     </p>
-    <h2>WASM output area</h2>
+    <h2>Output</h2>
       <div id="outputnode">
       </div>
     <h2>Text version of same</h2>
     <p>
-      <textarea rows="20" cols="100" id="debugtext">Generated SVG will be put here in plaintext.</textarea>
+      <textarea disabled rows="20" cols="100" id="debugtext">Generated SVG will be put here in plaintext.</textarea>
     </p>
   </body>
 </html>
