@@ -19,8 +19,6 @@
 #include <cmath>
 #include <cassert>
 
-double FixedConstraint::calculate_error(const std::vector<Point> &) const { return 0.0; }
-
 int FixedConstraint::num_free_variables() const { return 0; }
 
 void FixedConstraint::append_free_variables_to(std::vector<double> &) const {}
@@ -41,8 +39,6 @@ std::vector<VariableLimits> FixedConstraint::get_limits() const {
     std::vector<VariableLimits> v;
     return v;
 }
-
-double FreeConstraint::calculate_error(const std::vector<Point> &) const { return 0.0; }
 
 int FreeConstraint::num_free_variables() const { return 2; }
 
@@ -85,8 +81,6 @@ DirectionConstraint::DirectionConstraint(int from_point_index, int to_point_inde
     distance = 0.2;
 }
 
-double DirectionConstraint::calculate_error(const std::vector<Point> &) const { return 0.0; }
-
 int DirectionConstraint::num_free_variables() const { return 1; }
 
 void DirectionConstraint::append_free_variables_to(std::vector<double> &variables) const {
@@ -127,8 +121,6 @@ MirrorConstraint::MirrorConstraint(int point_index, int from_point_index, int mi
     : point_index(point_index), from_point_index(from_point_index),
       mirror_point_index(mirror_point_index) {}
 
-double MirrorConstraint::calculate_error(const std::vector<Point> &) const { return 0.0; }
-
 int MirrorConstraint::num_free_variables() const { return 0; }
 
 void MirrorConstraint::append_free_variables_to(std::vector<double> &) const {}
@@ -161,8 +153,6 @@ SmoothConstraint::SmoothConstraint(int this_control_index,
       curve_point_index(curve_point_index) {
     alpha = 1.0;
 }
-
-double SmoothConstraint::calculate_error(const std::vector<Point> &) const { return 0.0; }
 
 int SmoothConstraint::num_free_variables() const { return 1; }
 
@@ -211,8 +201,6 @@ AngleConstraint::AngleConstraint(int point_index,
     distance = 0.01;
 }
 
-double AngleConstraint::calculate_error(const std::vector<Point> &) const { return 0; }
-
 int AngleConstraint::num_free_variables() const { return 2; }
 
 void AngleConstraint::append_free_variables_to(std::vector<double> &variables) const {
@@ -259,8 +247,6 @@ SameOffsetConstraint::SameOffsetConstraint(int point_index,
                                            int other_relative_to_index)
     : point_index(point_index), relative_to_index(relative_to_index),
       other_point_index(other_point_index), other_relative_to_index(other_relative_to_index) {}
-
-double SameOffsetConstraint::calculate_error(const std::vector<Point> &) const { return 0.0; }
 
 int SameOffsetConstraint::num_free_variables() const { return 0; }
 
