@@ -53,6 +53,10 @@ private:
     void setup_canvas();
     void draw_example();
 
+    double x_to_canvas_x(double x) const;
+    double y_to_canvas_y(double y) const;
+
+    const double scale = 400.0;
     tinyxml2::XMLDocument doc;
     tinyxml2::XMLElement *root;
     tinyxml2::XMLElement *canvas;

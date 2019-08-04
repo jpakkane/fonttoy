@@ -30,28 +30,19 @@ void SvgExporter::setup_canvas() {
     root = doc.NewElement("svg");
     root->SetAttribute("xmlns", "http://www.w3.org/2000/svg");
     root->SetAttribute("width", "600px");
-    root->SetAttribute("height", "700px");
+    root->SetAttribute("height", "600px");
     doc.InsertFirstChild(root);
     auto bg = doc.NewElement("rect");
     bg->SetAttribute("width", "600px");
     bg->SetAttribute("height", "700px");
     bg->SetAttribute("fill", "white");
     root->InsertFirstChild(bg);
-    auto t = doc.NewElement("g");
-    t->SetAttribute("transform", "translate(100, 550)");
-    root->InsertEndChild(t);
-    auto t2 = doc.NewElement("g");
-    t2->SetAttribute("transform", "matrix(1, 0, 0, -1, 0, 0)");
-    t->InsertEndChild(t2);
-    canvas = doc.NewElement("g");
-    canvas->SetAttribute("transform", "scale(500)");
-    t2->InsertEndChild(canvas);
+    canvas = root;
 
     draw_line(-20, 0, 20, 0, "black", 0.002, nullptr);
     draw_line(0, -20, 0, 20, "black", 0.002, nullptr);
     draw_line(-20, 1, 20, 1, "black", 0.002, nullptr);
     draw_line(1, -20, 1, 20, "black", 0.002, nullptr);
-
     draw_line(0.7, -20, 0.7, 20, "black", 0.001, nullptr);
     draw_text(-0.06, -0.02, 0.02, "(0, 0)");
     draw_text(1.01, 1.01, 0.02, "(1, 1)");
@@ -63,7 +54,6 @@ void SvgExporter::setup_canvas() {
     draw_horizontal_guide(-0.02, "Undershoot");
     draw_horizontal_guide(0.9, "Cap height");
     draw_horizontal_guide(-0.22, "Descender height");
-
     auto c = doc.NewComment("Character splines go here");
     canvas->InsertEndChild(c);
 }
@@ -76,13 +66,13 @@ void SvgExporter::draw_line(double x1,
                             double stroke_width,
                             const char *dash) {
     auto l = doc.NewElement("line");
-    l->SetAttribute("x1", x1);
-    l->SetAttribute("y1", y1);
-    l->SetAttribute("x2", x2);
-    l->SetAttribute("y2", y2);
+    l->SetAttribute("x1", x_to_canvas_x(x1));
+    l->SetAttribute("y1", y_to_canvas_y(y1));
+    l->SetAttribute("x2", x_to_canvas_x(x2));
+    l->SetAttribute("y2", y_to_canvas_y(y2));
     if(stroke) {
         l->SetAttribute("stroke", stroke);
-        l->SetAttribute("stroke-width", stroke_width);
+        l->SetAttribute("stroke-width", scale*stroke_width);
     }
     if(dash) {
         l->SetAttribute("stroke-dasharray", dash);
@@ -108,24 +98,24 @@ void SvgExporter::draw_bezier(
     snprintf(buf,
              buf_size,
              "M%f %f C %f %f %f %f %f %f",
-             p1.x(),
-             p1.y(),
-             c1.x(),
-             c1.y(),
-             c2.x(),
-             c2.y(),
-             p2.x(),
-             p2.y());
+             x_to_canvas_x(p1.x()),
+             y_to_canvas_y(p1.y()),
+             x_to_canvas_x(c1.x()),
+             y_to_canvas_y(c1.y()),
+             x_to_canvas_x(c2.x()),
+             y_to_canvas_y(c2.y()),
+             x_to_canvas_x(p2.x()),
+             y_to_canvas_y(p2.y()));
     auto b = doc.NewElement("path");
     b->SetAttribute("d", buf);
-    b->SetAttribute("stroke-width", stroke_width);
+    b->SetAttribute("stroke-width", stroke_width*scale);
     b->SetAttribute("stroke", stroke);
     b->SetAttribute("fill", fill);
     canvas->InsertEndChild(b);
 
     if(draw_controls) {
-        draw_line(p1.x(), p1.y(), c1.x(), c1.y(), "black", 0.001, "0.01,0.01");
-        draw_line(p2.x(), p2.y(), c2.x(), c2.y(), "black", 0.001, "0.01,0.01");
+        draw_line(p1.x(), p1.y(), c1.x(), c1.y(), "black", 0.001, "1.0,1.0");
+        draw_line(p2.x(), p2.y(), c2.x(), c2.y(), "black", 0.001, "1.0,1.0");
         draw_circle(p1.x(), p1.y(), 0.01);
         draw_circle(p2.x(), p2.y(), 0.01);
         draw_cross(c1.x(), c1.y());
@@ -140,52 +130,41 @@ void SvgExporter::draw_cross(double x, double y) {
     snprintf(buf,
              buf_size,
              "M %f %f L %f %f M %f %f L %f %f",
-             x - cross_size,
-             y - cross_size,
-             x + cross_size,
-             y + cross_size,
-             x - cross_size,
-             y + cross_size,
-             x + cross_size,
-             y - cross_size);
+             x_to_canvas_x(x - cross_size),
+             y_to_canvas_y(y - cross_size),
+             x_to_canvas_x(x + cross_size),
+             y_to_canvas_y(y + cross_size),
+             x_to_canvas_x(x - cross_size),
+             y_to_canvas_y(y + cross_size),
+             x_to_canvas_x(x + cross_size),
+             y_to_canvas_y(y - cross_size));
     auto c = doc.NewElement("path");
     c->SetAttribute("d", buf);
-    c->SetAttribute("stroke-width", 0.002);
+    c->SetAttribute("stroke-width", 0.002*scale);
     c->SetAttribute("stroke", "black");
     canvas->InsertEndChild(c);
 }
 
 void SvgExporter::draw_circle(double x, double y, double radius) {
     auto c = doc.NewElement("circle");
-    c->SetAttribute("cx", x);
-    c->SetAttribute("cy", y);
-    c->SetAttribute("r", radius);
+    c->SetAttribute("cx", x_to_canvas_x(x));
+    c->SetAttribute("cy", y_to_canvas_y(y));
+    c->SetAttribute("r", radius*scale);
     canvas->InsertEndChild(c);
 }
 
 void SvgExporter::draw_text(double x, double y, double size, const char *msg) {
-    auto g1 = doc.NewElement("g");
-    const int buf_size = 1024;
-    char buf[buf_size];
-
-    snprintf(buf, buf_size, "translate(%f, %f)", x, y);
-
-    g1->SetAttribute("transform", buf);
-    canvas->InsertEndChild(g1);
-    auto g2 = doc.NewElement("g");
-    g2->SetAttribute("transform", "matrix(1, 0, 0, -1, 0, 0)");
-    g1->InsertEndChild(g2);
     auto text = doc.NewElement("text");
-    text->SetAttribute("x", 0);
-    text->SetAttribute("y", 0);
-    text->SetAttribute("font-size", size);
+    text->SetAttribute("x", x_to_canvas_x(x));
+    text->SetAttribute("y", y_to_canvas_y(y));
+    text->SetAttribute("font-size", size*scale);
     text->SetAttribute("fill", "black");
     text->SetText(msg);
-    g2->InsertEndChild(text);
+    canvas->InsertEndChild(text);
 }
 
 void SvgExporter::draw_horizontal_guide(double y, const char *txt) {
-    draw_line(-20, y, 20, y, "black", 0.002, "0.01,0.01");
+    draw_line(-20, y, 20, y, "black", 0.002, "1.0,1.0");
     draw_text(0.82, y + 0.002, 0.02, txt);
 }
 
@@ -195,4 +174,12 @@ std::string SvgExporter::to_string() const {
     XMLPrinter printer;
     doc.Print(&printer);
     return std::string(printer.CStr());
+}
+
+double SvgExporter::x_to_canvas_x(double x) const {
+    return scale*x+100;
+}
+
+double SvgExporter::y_to_canvas_y(double y) const {
+    return scale*(-y)+450;
 }
