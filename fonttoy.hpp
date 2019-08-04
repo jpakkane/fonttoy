@@ -167,6 +167,8 @@ public:
 
     void freeze();
 
+    const std::vector<Point>& get_points() const { return points; }
+
 private:
     void update_model();
     double calculate_2nd_der() const;

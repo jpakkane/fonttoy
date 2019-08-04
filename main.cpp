@@ -73,9 +73,22 @@ void put_beziers_in(Stroke &s, SvgExporter &svg) {
     }
 }
 
+void put_indexes_in(Stroke &s, SvgExporter &svg) {
+    char buf[1024];
+    auto &points = s.get_points();
+    for(int i=0; i<(int)points.size(); i+=3) {
+        const auto &p = points[i];
+        const double label_x = p.x() - 0.006;
+        const double label_y = p.y() + 0.02;
+        sprintf(buf, "%d", i);
+        svg.draw_text(label_x, label_y, 0.02, buf);
+    }
+}
+
 void write_svg(Stroke &s, const char *fname) {
     SvgExporter svg;
     put_beziers_in(s, svg);
+    put_indexes_in(s, svg);
     svg.write_svg(fname);
 }
 
