@@ -34,3 +34,24 @@ beginchar("B",11pt#,11pt#,0);
 endchar;
 
 end
+
+
+Random thinking
+
+constants
+  r1 = 0.3
+  r2 = 0.2
+end
+
+
+fn thickness(theta)
+  return r1 + r2*sin(theta)
+end
+
+stroke("bsblllb") # bezier-symmetric-bezier-line-line-line-bezier
+s1.p1.x = ... (double variable)
+s1.p2 = ...   (2D vector variable)
+s1.p3.theta = ... (entry angle)
+
+stroke("bsbsbsbs", thickness) # in addition to "stroke" also "loop" and "shape"
+s2.p1.oncurve(s1.b1, pi/2) # Perpendicular to direction of curve.
