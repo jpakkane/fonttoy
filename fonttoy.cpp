@@ -103,16 +103,27 @@ Stroke::Stroke(const int num_beziers) : num_beziers(num_beziers) {
     const int num_points = num_beziers * 3 + 1;
     points.reserve(num_points);
     for(int i = 0; i < num_points; ++i) {
-        points.push_back(Point());
+        points.emplace_back();
+        coord_specifications.emplace_back(false, false);
     }
 }
 
-void Stroke::add_constraint(std::unique_ptr<Constraint> c) {
+std::optional<std::string> Stroke::add_constraint(std::unique_ptr<Constraint> c) {
     assert(!is_frozen);
+    auto backup = coord_specifications;
+    for(auto specific: c->determines_points()) {
+        if(!coord_specifications[specific.index].try_union(specific.w)) {
+            std::string err("Multiple specifications for point: ");
+            err += std::to_string(specific.index);
+            coord_specifications = backup;
+            return err;
+        }
+    }
     constraints.push_back(std::move(c));
     for(auto &&l : constraints.back()->get_limits()) {
         limits.emplace_back(l);
     }
+    return std::optional<std::string>{};
 }
 
 std::vector<double> Stroke::get_free_variables() const {
@@ -150,17 +161,18 @@ void Stroke::freeze() {
     // Set up a free constraint for every point that has no
     // constraints yet. Otherwise the optimization routine
     // can not move them.
-    std::unordered_set<int> constrained;
-    for(const auto &c : constraints) {
-        for(const auto &p : c->determines_points()) {
-            constrained.insert(p);
+    for(int i = 0; i < (int)coord_specifications.size(); i++) {
+        const auto &cs = coord_specifications[i];
+        // Adding constraints does not change the size of the specification
+        // array. Even though we may change its contents, iterators are not invalidated.
+        if(!cs.fully_constrained()) {
+            assert(!cs.x);
+            assert(!cs.y);
+            auto error_message = add_constraint(std::make_unique<FreeConstraint>(i, points[i]));
+            assert(!error_message);
         }
     }
-    for(int i = 0; i < (int)points.size(); i++) {
-        if(constrained.find(i) == constrained.end()) {
-            add_constraint(std::make_unique<FreeConstraint>(i, points[i]));
-        }
-    }
+
     is_frozen = true;
 }
 

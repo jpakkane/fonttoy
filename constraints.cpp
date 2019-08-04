@@ -29,9 +29,9 @@ int FixedConstraint::get_free_variables_from(const std::vector<double> &, const 
 
 void FixedConstraint::update_model(std::vector<Point> &points) const { points[point_index] = p; }
 
-std::vector<int> FixedConstraint::determines_points() const {
-    std::vector<int> v;
-    v.push_back(point_index);
+std::vector<CoordinateDefinition> FixedConstraint::determines_points() const {
+    std::vector<CoordinateDefinition> v;
+    v.emplace_back(point_index, true, true);
     return v;
 }
 
@@ -61,9 +61,9 @@ int FreeConstraint::get_free_variables_from(const std::vector<double> &variables
 
 void FreeConstraint::update_model(std::vector<Point> &points) const { points[point_index] = p; }
 
-std::vector<int> FreeConstraint::determines_points() const {
-    std::vector<int> r;
-    r.push_back(point_index);
+std::vector<CoordinateDefinition> FreeConstraint::determines_points() const {
+    std::vector<CoordinateDefinition> r;
+    r.emplace_back(point_index, true, true);
     return r;
 }
 
@@ -104,9 +104,9 @@ void DirectionConstraint::update_model(std::vector<Point> &points) const {
     points[to_point_index] = points[from_point_index] + distance * direction_unit_vector;
 }
 
-std::vector<int> DirectionConstraint::determines_points() const {
-    std::vector<int> r;
-    r.push_back(to_point_index);
+std::vector<CoordinateDefinition> DirectionConstraint::determines_points() const {
+    std::vector<CoordinateDefinition> r;
+    r.emplace_back(to_point_index, true, true);
     return r;
 }
 
@@ -135,9 +135,9 @@ void MirrorConstraint::update_model(std::vector<Point> &points) const {
     points[point_index] = Point(updated_location.x(), updated_location.y());
 }
 
-std::vector<int> MirrorConstraint::determines_points() const {
-    std::vector<int> result;
-    result.push_back(point_index);
+std::vector<CoordinateDefinition> MirrorConstraint::determines_points() const {
+    std::vector<CoordinateDefinition> result;
+    result.emplace_back(point_index, true, true);
     return result;
 }
 
@@ -177,9 +177,9 @@ void SmoothConstraint::update_model(std::vector<Point> &points) const {
     points[this_control_index] = points[curve_point_index] - delta * alpha;
 }
 
-std::vector<int> SmoothConstraint::determines_points() const {
-    std::vector<int> p;
-    p.push_back(this_control_index);
+std::vector<CoordinateDefinition> SmoothConstraint::determines_points() const {
+    std::vector<CoordinateDefinition> p;
+    p.emplace_back(this_control_index, true, true);
     return p;
 }
 
@@ -226,9 +226,9 @@ void AngleConstraint::update_model(std::vector<Point> &points) const {
     points[point_index] = points[from_point_index] + direction_unit_vector * distance;
 }
 
-std::vector<int> AngleConstraint::determines_points() const {
-    std::vector<int> result;
-    result.push_back(point_index);
+std::vector<CoordinateDefinition> AngleConstraint::determines_points() const {
+    std::vector<CoordinateDefinition> result;
+    result.emplace_back(point_index, true, true);
     return result;
 }
 
@@ -265,9 +265,9 @@ void SameOffsetConstraint::update_model(std::vector<Point> &points) const {
     points[point_index] = points[relative_to_index] + delta;
 }
 
-std::vector<int> SameOffsetConstraint::determines_points() const {
-    std::vector<int> result;
-    result.push_back(point_index);
+std::vector<CoordinateDefinition> SameOffsetConstraint::determines_points() const {
+    std::vector<CoordinateDefinition> result;
+    result.emplace_back(point_index, true, true);
     return result;
 }
 

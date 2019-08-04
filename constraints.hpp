@@ -29,7 +29,7 @@ public:
     virtual int put_free_variables_in(std::vector<double> &variables, const int offset) const = 0;
     virtual int get_free_variables_from(const std::vector<double> &variables, const int offset) = 0;
     virtual void update_model(std::vector<Point> &points) const = 0;
-    virtual std::vector<int> determines_points() const = 0;
+    virtual std::vector<CoordinateDefinition> determines_points() const = 0;
     virtual std::vector<VariableLimits> get_limits() const = 0;
 };
 
@@ -43,7 +43,7 @@ public:
     int put_free_variables_in(std::vector<double> &variables, const int offset) const override;
     int get_free_variables_from(const std::vector<double> &variables, const int offset) override;
     void update_model(std::vector<Point> &points) const override;
-    std::vector<int> determines_points() const override;
+    std::vector<CoordinateDefinition> determines_points() const override;
     std::vector<VariableLimits> get_limits() const override;
 
 private:
@@ -62,7 +62,7 @@ public:
     int put_free_variables_in(std::vector<double> &variables, const int offset) const override;
     int get_free_variables_from(const std::vector<double> &variables, const int offset) override;
     void update_model(std::vector<Point> &points) const override;
-    std::vector<int> determines_points() const override;
+    std::vector<CoordinateDefinition> determines_points() const override;
     std::vector<VariableLimits> get_limits() const override;
 
 private:
@@ -80,7 +80,7 @@ public:
     int put_free_variables_in(std::vector<double> &variables, const int offset) const override;
     int get_free_variables_from(const std::vector<double> &variables, const int offset) override;
     void update_model(std::vector<Point> &points) const override;
-    std::vector<int> determines_points() const override;
+    std::vector<CoordinateDefinition> determines_points() const override;
     std::vector<VariableLimits> get_limits() const override;
 
 private:
@@ -100,7 +100,7 @@ public:
     int put_free_variables_in(std::vector<double> &variables, const int offset) const override;
     int get_free_variables_from(const std::vector<double> &variables, const int offset) override;
     void update_model(std::vector<Point> &points) const override;
-    std::vector<int> determines_points() const override;
+    std::vector<CoordinateDefinition> determines_points() const override;
     std::vector<VariableLimits> get_limits() const override;
 
 private:
@@ -119,7 +119,7 @@ public:
     int put_free_variables_in(std::vector<double> &variables, const int offset) const override;
     int get_free_variables_from(const std::vector<double> &variables, const int offset) override;
     void update_model(std::vector<Point> &points) const override;
-    std::vector<int> determines_points() const override;
+    std::vector<CoordinateDefinition> determines_points() const override;
     std::vector<VariableLimits> get_limits() const override;
 
 private:
@@ -137,7 +137,7 @@ public:
     int put_free_variables_in(std::vector<double> &variables, const int offset) const override;
     int get_free_variables_from(const std::vector<double> &variables, const int offset) override;
     void update_model(std::vector<Point> &points) const override;
-    std::vector<int> determines_points() const override;
+    std::vector<CoordinateDefinition> determines_points() const override;
     std::vector<VariableLimits> get_limits() const override;
 
 private:
@@ -162,7 +162,7 @@ public:
     int put_free_variables_in(std::vector<double> &variables, const int offset) const override;
     int get_free_variables_from(const std::vector<double> &variables, const int offset) override;
     void update_model(std::vector<Point> &points) const override;
-    std::vector<int> determines_points() const override;
+    std::vector<CoordinateDefinition> determines_points() const override;
     std::vector<VariableLimits> get_limits() const override;
 
 private:

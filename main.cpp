@@ -166,7 +166,10 @@ public:
             if(args.size() != 3) {
                 return "Wrong number of arguments.";
             }
-            s->add_constraint(std::make_unique<FixedConstraint>(args[0], Point(args[1], args[2])));
+            auto r = s->add_constraint(std::make_unique<FixedConstraint>(args[0], Point(args[1], args[2])));
+            if(r) {
+                return *r;
+            }
             return 0.0;
         } else if(funname == "DirectionConstraint") {
             if(!s) {
@@ -175,7 +178,10 @@ public:
             if(args.size() != 3) {
                 return "Wrong number of arguments.";
             }
-            s->add_constraint(std::make_unique<DirectionConstraint>(args[0], args[1], args[2]));
+            auto r = s->add_constraint(std::make_unique<DirectionConstraint>(args[0], args[1], args[2]));
+            if(r) {
+                return *r;
+            }
             return 0.0;
         } else if(funname == "MirrorConstraint") {
             if(!s) {
@@ -184,7 +190,10 @@ public:
             if(args.size() != 3) {
                 return "Wrong number of arguments.";
             }
-            s->add_constraint(std::make_unique<MirrorConstraint>(args[0], args[1], args[2]));
+            auto r = s->add_constraint(std::make_unique<MirrorConstraint>(args[0], args[1], args[2]));
+            if(r) {
+                return *r;
+            }
             return 0.0;
         } else if(funname == "SmoothConstraint") {
             if(!s) {
@@ -193,7 +202,10 @@ public:
             if(args.size() != 3) {
                 return "Wrong number of arguments.";
             }
-            s->add_constraint(std::make_unique<SmoothConstraint>(args[0], args[1], args[2]));
+            auto r = s->add_constraint(std::make_unique<SmoothConstraint>(args[0], args[1], args[2]));
+            if(r) {
+                return *r;
+            }
             return 0.0;
         } else if(funname == "AngleConstraint") {
             if(!s) {
@@ -202,8 +214,11 @@ public:
             if(args.size() != 4) {
                 return "Wrong number of arguments.";
             }
-            s->add_constraint(
+            auto r = s->add_constraint(
                 std::make_unique<AngleConstraint>(args[0], args[1], args[2], args[3]));
+            if(r) {
+                return *r;
+            }
             return 0.0;
         } else if(funname == "SameOffsetConstraint") {
             if(!s) {
@@ -212,8 +227,11 @@ public:
             if(args.size() != 4) {
                 return "Wrong number of arguments.";
             }
-            s->add_constraint(
+            auto r = s->add_constraint(
                 std::make_unique<SameOffsetConstraint>(args[0], args[1], args[2], args[3]));
+            if(r) {
+                return *r;
+            }
             return 0.0;
         } else {
             return "Unknown function.";

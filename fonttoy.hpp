@@ -29,6 +29,38 @@ struct VariableLimits {
     std::optional<double> max_value;
 };
 
+struct WhichCoordinate {
+    bool x = false;
+    bool y = false;
+
+    WhichCoordinate(bool x, bool y) : x(x), y(y) {}
+
+    bool defines_same(const WhichCoordinate &o) const {
+        return (x&&o.x) || (y&&o.y);
+    }
+
+    bool try_union(const WhichCoordinate &o) {
+        if(defines_same(o)) {
+            return false;
+        }
+        x |= o.x;
+        y |= o.y;
+        return true;
+    }
+
+    bool fully_constrained() const {
+        return x && y;
+    }
+};
+
+struct CoordinateDefinition {
+    int index;
+    WhichCoordinate w;
+
+    CoordinateDefinition(int index, bool defines_x, bool defines_y) : index(index), w(defines_x, defines_y) {
+    }
+};
+
 // Points and vectors are immutable but assignable
 
 class Point final {
@@ -128,7 +160,7 @@ public:
 
     std::vector<double> get_free_variables() const;
     void set_free_variables(const std::vector<double> &v);
-    void add_constraint(std::unique_ptr<Constraint> c);
+    std::optional<std::string> add_constraint(std::unique_ptr<Constraint> c);
 
     double calculate_value_for(const std::vector<double> &vars);
     std::vector<Bezier> build_beziers() const;
@@ -142,6 +174,7 @@ private:
 
     int num_beziers;
     std::vector<Point> points;
+    std::vector<WhichCoordinate> coord_specifications;
     std::vector<std::unique_ptr<Constraint>> constraints;
     std::vector<VariableLimits> limits;
     bool is_frozen = false; // No more constraints.
