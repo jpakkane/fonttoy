@@ -21,6 +21,7 @@
 #include <cassert>
 #include <unordered_set>
 #include <algorithm>
+#include <string>
 
 Vector Point::operator-(const Point &other) const { return Vector(x_ - other.x_, y_ - other.y_); }
 

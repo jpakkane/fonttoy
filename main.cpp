@@ -85,10 +85,14 @@ void put_indexes_in(Stroke &s, SvgExporter &svg) {
     }
 }
 
-void write_svg(Stroke &s, const char *fname) {
-    SvgExporter svg;
+void build_svg(Stroke &s, SvgExporter &svg) {
     put_beziers_in(s, svg);
     put_indexes_in(s, svg);
+}
+
+void write_svg(Stroke &s, const char *fname) {
+    SvgExporter svg;
+    build_svg(s, svg);
     svg.write_svg(fname);
 }
 
@@ -293,7 +297,6 @@ std::variant<Stroke, std::string> calculate_sample_dynamically(const std::string
 extern "C" {
 
 int EMSCRIPTEN_KEEPALIVE wasm_entrypoint(char *buf) {
-    SvgExporter e;
     std::string program(buf);
     auto s = calculate_sample_dynamically(program);
     if(std::holds_alternative<std::string>(s)) {
@@ -301,7 +304,7 @@ int EMSCRIPTEN_KEEPALIVE wasm_entrypoint(char *buf) {
         return 1;
     }
     SvgExporter svg;
-    put_beziers_in(std::get<Stroke>(s), svg);
+    build_svg(std::get<Stroke>(s), svg);
     std::string result = svg.to_string();
     strcpy(buf, result.c_str());
     return 0;
