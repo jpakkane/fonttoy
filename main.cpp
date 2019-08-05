@@ -32,21 +32,19 @@
 #include <emscripten.h>
 #endif
 
-static bool debug_svgs = false;
-
 static_assert(sizeof(lbfgsfloatval_t) == sizeof(double));
 
 typedef double (*fptr)(const double *, const int);
 
 double maxd(const double d1, const double d2) { return d1 > d2 ? d1 : d2; }
 
-enum class WhichStroke : char { skeleton, left, right };
+enum class OptPhase : char { uninit, skeleton, left, right, finished };
 
-double distance_error(Shape *s, const std::vector<double> &x, WhichStroke which) {
-    assert(which == WhichStroke::left || which == WhichStroke::right);
+double distance_error(Shape *s, const std::vector<double> &x, OptPhase which) {
+    assert(which == OptPhase::left || which == OptPhase::right);
     double total_error = 0;
     auto skel_beziers = s->skeleton.build_beziers();
-    Stroke *side = which == WhichStroke::left ? &s->left : &s->right;
+    Stroke *side = which == OptPhase::left ? &s->left : &s->right;
     side->set_free_variables(x);
     auto side_beziers = side->build_beziers();
     assert(skel_beziers.size() == side_beziers.size());
@@ -65,17 +63,18 @@ double distance_error(Shape *s, const std::vector<double> &x, WhichStroke which)
     return total_error;
 }
 
-struct OptimizerArguments {
+struct OptimizerState {
     Shape *s;
-    WhichStroke which;
+    OptPhase phase = OptPhase::uninit;
+    std::vector<std::string> frames;
 
     double calculate_value_for(const std::vector<double> &x) const {
-        switch(which) {
-        case WhichStroke::skeleton:
+        switch(phase) {
+        case OptPhase::skeleton:
             return s->skeleton.calculate_value_for(x);
-        case WhichStroke::right:
-        case WhichStroke::left:
-            return distance_error(s, x, which);
+        case OptPhase::right:
+        case OptPhase::left:
+            return distance_error(s, x, phase);
         default:
             assert(false);
         }
@@ -93,7 +92,7 @@ std::vector<double> compute_absolute_step(double rel_step, const std::vector<dou
     return h;
 }
 
-std::vector<double> estimate_derivative(OptimizerArguments *args,
+std::vector<double> estimate_derivative(OptimizerState *args,
                                         const std::vector<double> &x,
                                         double f0,
                                         const std::vector<double> &h) {
@@ -135,19 +134,29 @@ void put_indexes_in(Stroke &s, SvgExporter &svg) {
     }
 }
 
-void build_svg(Shape &s, SvgExporter &svg) {
-    draw_shape(s, svg);
+void build_svg(Shape &s, SvgExporter &svg, OptPhase phase) {
+    if(phase == OptPhase::finished) {
+        draw_shape(s, svg);
+    }
     put_beziers_in(s.skeleton, svg, true);
     put_indexes_in(s.skeleton, svg);
-    /*
-    put_beziers_in(s.left, svg, false);
-    put_beziers_in(s.right, svg, false);
-    */
+    if(phase == OptPhase::left || phase == OptPhase::right) {
+        put_beziers_in(s.left, svg, false);
+    }
+    if(phase == OptPhase::right) {
+        put_beziers_in(s.right, svg, false);
+    }
 }
 
-void write_svg(Shape &s, const char *fname) {
+std::string build_svg(Shape &s, OptPhase phase) {
     SvgExporter svg;
-    build_svg(s, svg);
+    build_svg(s, svg, phase);
+    return svg.to_string();
+}
+
+void write_svg(Shape &s, const char *fname, OptPhase phase) {
+    SvgExporter svg;
+    build_svg(s, svg, phase);
     svg.write_svg(fname);
 }
 
@@ -156,17 +165,12 @@ static lbfgsfloatval_t evaluate_model(void *instance,
                                       lbfgsfloatval_t *g,
                                       const int n,
                                       const lbfgsfloatval_t step) {
-    static int num = 0;
-    auto args = reinterpret_cast<OptimizerArguments *>(instance);
+    auto args = reinterpret_cast<OptimizerState *>(instance);
     (void)step;
     const double rel_step = 0.000000001;
     std::vector<double> curx(x, x + n);
     double fx = args->calculate_value_for(curx);
-    if(debug_svgs) {
-        char buf[256];
-        sprintf(buf, "eval%03d.svg", num++);
-        write_svg(*args->s, buf);
-    }
+    args->frames.push_back(build_svg(*args->s, args->phase));
     auto curh = compute_absolute_step(rel_step, curx);
     auto g_est = estimate_derivative(args, curx, fx, curh);
     for(int i = 0; i < n; i++) {
@@ -187,19 +191,14 @@ int model_progress(void *instance,
                    int k,
                    int) {
     printf("Iteration %d\n", k);
-    auto *args = reinterpret_cast<OptimizerArguments *>(instance);
-    if(debug_svgs) {
-        char buf[128];
-        sprintf(buf, "step%d.svg", k);
-        write_svg(*args->s, buf);
-    }
+    auto *args = reinterpret_cast<OptimizerState *>(instance);
+    args->frames.push_back(build_svg(*args->s, args->phase));
     return 0;
 }
 
-void optimize_skeleton(Shape *shape) {
-    OptimizerArguments args;
-    args.which = WhichStroke::skeleton;
-    args.s = shape;
+void optimize_skeleton(Shape *shape, OptimizerState &state) {
+    assert(state.phase == OptPhase::skeleton);
+    state.s = shape;
     Stroke *s = &shape->skeleton;
     double final_result = 1e8;
     auto variables = s->get_free_variables();
@@ -208,10 +207,8 @@ void optimize_skeleton(Shape *shape) {
     variables = s->get_free_variables();
     assert(variables.size() == 9);
 
-    if(debug_svgs) {
-        s->calculate_value_for(variables);
-        write_svg(*shape, "initial.svg");
-    }
+    s->calculate_value_for(variables);
+    state.frames.push_back(build_svg(*shape, state.phase));
 
     lbfgs_parameter_t param;
     lbfgs_parameter_init(&param);
@@ -220,22 +217,20 @@ void optimize_skeleton(Shape *shape) {
                     &final_result,
                     evaluate_model,
                     model_progress,
-                    &args,
+                    &state,
                     &param);
     printf("Skeleton exit value: %d\n", ret);
     // insert final values back in the stroke here.
     s->calculate_value_for(variables);
 }
 
-void optimize_side(Shape *shape, const WhichStroke which) {
-    OptimizerArguments args;
+void optimize_side(Shape *shape, OptimizerState &state) {
     Stroke *skel = &shape->skeleton;
-    args.which = which;
     double final_result = 1e8;
     const double r = 0.05;
-    args.s = shape;
+    state.s = shape;
     auto skel_b = skel->build_beziers();
-    auto side = which == WhichStroke::left ? &shape->left : &shape->right;
+    auto side = state.phase == OptPhase::left ? &shape->left : &shape->right;
     const auto &skel_points = skel->get_points();
     const auto &side_points = side->get_points();
     assert(skel_points.size() == side_points.size());
@@ -250,7 +245,7 @@ void optimize_side(Shape *shape, const WhichStroke which) {
             bezier_index = i / 3;
             eval_point = 0.0;
         }
-        int flipper = which == WhichStroke::left ? 1 : -1;
+        int flipper = state.phase == OptPhase::left ? 1 : -1;
         Point skel_point = skel_b[bezier_index].evaluate(eval_point);
         Vector side_normal = skel_b[bezier_index].evaluate_left_normal(eval_point);
         Point side_point = skel_point + flipper * r * side_normal;
@@ -292,16 +287,21 @@ void optimize_side(Shape *shape, const WhichStroke which) {
                     &final_result,
                     evaluate_model,
                     model_progress,
-                    &args,
+                    &state,
                     &param);
     side->calculate_value_for(variables);
     printf("Side exit value: %d\n", ret);
 }
 
-void optimize(Shape *shape) {
-    optimize_skeleton(shape);
-    optimize_side(shape, WhichStroke::left);
-    optimize_side(shape, WhichStroke::right);
+void optimize(OptimizerState &state, Shape *shape) {
+    assert(state.phase == OptPhase::uninit);
+    state.phase = OptPhase::skeleton;
+    optimize_skeleton(shape, state);
+    state.phase = OptPhase::left;
+    optimize_side(shape, state);
+    state.phase = OptPhase::right;
+    optimize_side(shape, state);
+    state.phase = OptPhase::finished;
 }
 
 class Bridge : public ExternalFuncall {
@@ -411,7 +411,7 @@ private:
     std::unique_ptr<Shape> s;
 };
 
-std::variant<Shape, std::string> calculate_sample_dynamically(const std::string &program) {
+std::variant<Shape, std::string> calculate_sample_dynamically(OptimizerState &state, const std::string &program) {
     Bridge b;
     Lexer l(program);
     Parser p(l);
@@ -430,25 +430,40 @@ std::variant<Shape, std::string> calculate_sample_dynamically(const std::string 
     if(!b.has_shape()) {
         return "Program did not define a bezier stroke.";
     }
-    optimize(&b.get_shape());
+    optimize(state, &b.get_shape());
     return std::move(b.get_shape());
 }
 
 #if defined(WASM)
 
+// Store all evaluated frames here for the UI.
+
+static std::vector<std::string> frames;
+
 extern "C" {
 
+int EMSCRIPTEN_KEEPALIVE num_frames() {
+    return (int) frames.size();
+}
+
+void EMSCRIPTEN_KEEPALIVE get_frame(int num, char *buf) {
+    if(num < 0 || num > (int)frames.size()) {
+        return;
+    }
+    strcpy(buf, frames[num].c_str());
+}
+
 int EMSCRIPTEN_KEEPALIVE wasm_entrypoint(char *buf) {
+    OptimizerState state;
     std::string program(buf);
-    auto s = calculate_sample_dynamically(program);
+    auto s = calculate_sample_dynamically(state, program);
     if(std::holds_alternative<std::string>(s)) {
         strcpy(buf, std::get<std::string>(s).c_str());
         return 1;
     }
-    SvgExporter svg;
-    build_svg(std::get<Shape>(s), svg);
-    std::string result = svg.to_string();
-    strcpy(buf, result.c_str());
+    state.frames.push_back(build_svg(std::get<Shape>(s), state.phase));
+    strcpy(buf, state.frames.back().c_str());
+    frames = std::move(state.frames);
     return 0;
 }
 }
@@ -471,21 +486,31 @@ std::string read_file(const char *fname) {
     return std::string(buf.get(), buf.get() + num_read);
 }
 
+void print_frames(const std::vector<std::string> &frames) {
+    char buf[256];
+    for(size_t i=0; i<frames.size(); i++) {
+        sprintf(buf, "frame%03d.svg", (int)i);
+        FILE *f = fopen(buf, "w");
+        fwrite(frames[i].c_str(), 1, frames[i].size(), f);
+        fclose(f);
+    }
+}
 int main(int argc, char **argv) {
-    debug_svgs = true;
     SvgExporter e;
+    OptimizerState state;
     if(argc != 2) {
         printf("%s <input file>\n", argv[0]);
         return 1;
     }
     std::string program = read_file(argv[1]);
-    auto s = calculate_sample_dynamically(program);
+    auto s = calculate_sample_dynamically(state, program);
     if(std::holds_alternative<std::string>(s)) {
         printf("%s\n", std::get<std::string>(s).c_str());
     } else {
-        write_svg(std::get<Shape>(s), "output.svg");
+        state.frames.push_back(build_svg(std::get<Shape>(s), OptPhase::finished));
     }
 
+    print_frames(state.frames);
     printf("All done, bye-bye.\n");
     return 0;
 }

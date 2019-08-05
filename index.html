@@ -12,12 +12,27 @@
           _free(ptr);
 
           if(retVal == 0) {
-              document.getElementById("outputnode").innerHTML = retStr;
+              var num_frames = _num_frames();
               document.getElementById("debugtext").value = retStr;
+              document.getElementById("framerange").max = num_frames-1
+              document.getElementById("framerange").value = num_frames-1;
+              frameChanged();
           } else {
               document.getElementById("outputnode").innerHtml = "SAATANA";
               document.getElementById("debugtext").value = retStr;
           }
+      }
+
+      function frameChanged() {
+          var range = document.getElementById("framerange");
+          var frame_num = parseInt(range.value);
+          var bufSize = 80000;
+          var ptr  = allocate(bufSize, 'i8', ALLOC_NORMAL);
+          _get_frame(frame_num, ptr);
+          var retStr = UTF8ToString(ptr);
+          _free(ptr);
+          document.getElementById("outputnode").innerHTML = retStr;
+          document.getElementById("framelabel").textContent = "Frame " + range.value + "/" + range.max;
       }
     </script>
   </head>
@@ -67,6 +82,9 @@ SameOffsetConstraint(17, 18, 0, 1)
       <button type="button" id="action" onclick="runWasm()">Calculate stroke</button>
     </p>
     <h2>Output</h2>
+    <p>
+      <input type="range" name="framenum" id="framerange" min="0" max="100" step="1" onchange="frameChanged()">
+      <label for="franenum" id="framelabel">No frames yet</label>
       <div id="outputnode">
       </div>
     <h2>Text version of same</h2>
