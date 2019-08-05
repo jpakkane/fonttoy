@@ -72,7 +72,7 @@ void SvgExporter::draw_line(double x1,
     l->SetAttribute("y2", y_to_canvas_y(y2));
     if(stroke) {
         l->SetAttribute("stroke", stroke);
-        l->SetAttribute("stroke-width", scale*stroke_width);
+        l->SetAttribute("stroke-width", scale * stroke_width);
     }
     if(dash) {
         l->SetAttribute("stroke-dasharray", dash);
@@ -108,7 +108,7 @@ void SvgExporter::draw_bezier(
              y_to_canvas_y(p2.y()));
     auto b = doc.NewElement("path");
     b->SetAttribute("d", buf);
-    b->SetAttribute("stroke-width", stroke_width*scale);
+    b->SetAttribute("stroke-width", stroke_width * scale);
     b->SetAttribute("stroke", stroke);
     b->SetAttribute("fill", fill);
     canvas->InsertEndChild(b);
@@ -140,7 +140,7 @@ void SvgExporter::draw_cross(double x, double y) {
              y_to_canvas_y(y - cross_size));
     auto c = doc.NewElement("path");
     c->SetAttribute("d", buf);
-    c->SetAttribute("stroke-width", 0.002*scale);
+    c->SetAttribute("stroke-width", 0.002 * scale);
     c->SetAttribute("stroke", "black");
     canvas->InsertEndChild(c);
 }
@@ -149,7 +149,7 @@ void SvgExporter::draw_circle(double x, double y, double radius) {
     auto c = doc.NewElement("circle");
     c->SetAttribute("cx", x_to_canvas_x(x));
     c->SetAttribute("cy", y_to_canvas_y(y));
-    c->SetAttribute("r", radius*scale);
+    c->SetAttribute("r", radius * scale);
     canvas->InsertEndChild(c);
 }
 
@@ -157,7 +157,7 @@ void SvgExporter::draw_text(double x, double y, double size, const char *msg) {
     auto text = doc.NewElement("text");
     text->SetAttribute("x", x_to_canvas_x(x));
     text->SetAttribute("y", y_to_canvas_y(y));
-    text->SetAttribute("font-size", size*scale);
+    text->SetAttribute("font-size", size * scale);
     text->SetAttribute("fill", "black");
     text->SetText(msg);
     canvas->InsertEndChild(text);
@@ -176,10 +176,6 @@ std::string SvgExporter::to_string() const {
     return std::string(printer.CStr());
 }
 
-double SvgExporter::x_to_canvas_x(double x) const {
-    return scale*x+100;
-}
+double SvgExporter::x_to_canvas_x(double x) const { return scale * x + 100; }
 
-double SvgExporter::y_to_canvas_y(double y) const {
-    return scale*(-y)+450;
-}
+double SvgExporter::y_to_canvas_y(double y) const { return scale * (-y) + 450; }

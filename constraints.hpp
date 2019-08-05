@@ -32,9 +32,7 @@ struct WhichCoordinate {
 
     WhichCoordinate(bool x, bool y) : x(x), y(y) {}
 
-    bool defines_same(const WhichCoordinate &o) const {
-        return (x&&o.x) || (y&&o.y);
-    }
+    bool defines_same(const WhichCoordinate &o) const { return (x && o.x) || (y && o.y); }
 
     bool try_union(const WhichCoordinate &o) {
         if(defines_same(o)) {
@@ -45,19 +43,16 @@ struct WhichCoordinate {
         return true;
     }
 
-    bool fully_constrained() const {
-        return x && y;
-    }
+    bool fully_constrained() const { return x && y; }
 };
 
 struct CoordinateDefinition {
     int index;
     WhichCoordinate w;
 
-    CoordinateDefinition(int index, bool defines_x, bool defines_y) : index(index), w(defines_x, defines_y) {
-    }
+    CoordinateDefinition(int index, bool defines_x, bool defines_y)
+        : index(index), w(defines_x, defines_y) {}
 };
-
 
 class Constraint {
 public:

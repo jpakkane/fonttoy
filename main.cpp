@@ -29,7 +29,7 @@
 #include <cassert>
 #include <cmath>
 #if defined(WASM)
-#include<emscripten.h>
+#include <emscripten.h>
 #endif
 
 static bool debug_svgs = false;
@@ -39,6 +39,26 @@ static_assert(sizeof(lbfgsfloatval_t) == sizeof(double));
 typedef double (*fptr)(const double *, const int);
 
 double maxd(const double d1, const double d2) { return d1 > d2 ? d1 : d2; }
+
+enum class WhichStroke : char {
+    skeleton,
+    left,
+    right
+};
+
+struct OptimizerArguments {
+    Shape *s;
+    WhichStroke which;
+
+    double calculate_value_for(const std::vector<double> &x) const {
+        switch(which) {
+        case WhichStroke::skeleton : return s->skeleton.calculate_value_for(x);
+        default: assert(false);
+        }
+        return 0.0/0.0;
+    }
+};
+
 
 std::vector<double> compute_absolute_step(double rel_step, const std::vector<double> &x) {
     std::vector<double> h;
@@ -50,7 +70,7 @@ std::vector<double> compute_absolute_step(double rel_step, const std::vector<dou
     return h;
 }
 
-std::vector<double> estimate_derivative(Stroke *s,
+std::vector<double> estimate_derivative(OptimizerArguments *s,
                                         const std::vector<double> &x,
                                         double f0,
                                         const std::vector<double> &h) {
@@ -67,16 +87,16 @@ std::vector<double> estimate_derivative(Stroke *s,
     return g;
 }
 
-void put_beziers_in(Stroke &s, SvgExporter &svg) {
+void put_beziers_in(Stroke &s, SvgExporter &svg, bool draw_controls) {
     for(const auto b : s.build_beziers()) {
-        svg.draw_bezier(b.p1(), b.c1(), b.c2(), b.p2(), true);
+        svg.draw_bezier(b.p1(), b.c1(), b.c2(), b.p2(), draw_controls);
     }
 }
 
 void put_indexes_in(Stroke &s, SvgExporter &svg) {
     char buf[1024];
     auto &points = s.get_points();
-    for(int i=0; i<(int)points.size(); i+=3) {
+    for(int i = 0; i < (int)points.size(); i += 3) {
         const auto &p = points[i];
         const double label_x = p.x() - 0.006;
         const double label_y = p.y() + 0.02;
@@ -85,12 +105,12 @@ void put_indexes_in(Stroke &s, SvgExporter &svg) {
     }
 }
 
-void build_svg(Stroke &s, SvgExporter &svg) {
-    put_beziers_in(s, svg);
-    put_indexes_in(s, svg);
+void build_svg(Shape &s, SvgExporter &svg) {
+    put_beziers_in(s.skeleton, svg, true);
+    put_indexes_in(s.skeleton, svg);
 }
 
-void write_svg(Stroke &s, const char *fname) {
+void write_svg(Shape &s, const char *fname) {
     SvgExporter svg;
     build_svg(s, svg);
     svg.write_svg(fname);
@@ -102,19 +122,18 @@ static lbfgsfloatval_t evaluate_model(void *instance,
                                       const int n,
                                       const lbfgsfloatval_t step) {
     static int num = 0;
-    auto s = reinterpret_cast<Stroke *>(instance);
+    auto args = reinterpret_cast<OptimizerArguments *>(instance);
     (void)step;
     const double rel_step = 0.000000001;
-    double fx = 0.0;
     std::vector<double> curx(x, x + n);
-    fx = s->calculate_value_for(curx);
+    double fx = args->calculate_value_for(curx);
     if(debug_svgs) {
         char buf[256];
         sprintf(buf, "eval%03d.svg", num++);
-        write_svg(*s, buf);
+        write_svg(*args->s, buf);
     }
     auto curh = compute_absolute_step(rel_step, curx);
-    auto g_est = estimate_derivative(s, curx, fx, curh);
+    auto g_est = estimate_derivative(args, curx, fx, curh);
     for(int i = 0; i < n; i++) {
         g[i] = g_est[i];
     }
@@ -133,16 +152,20 @@ int model_progress(void *instance,
                    int k,
                    int) {
     printf("Iteration %d\n", k);
-    Stroke *s = reinterpret_cast<Stroke *>(instance);
+    auto *args = reinterpret_cast<OptimizerArguments *>(instance);
     if(debug_svgs) {
         char buf[128];
         sprintf(buf, "step%d.svg", k);
-        write_svg(*s, buf);
+        write_svg(*args->s, buf);
     }
     return 0;
 }
 
-void optimize(Stroke *s) {
+void optimize(Shape *shape) {
+    OptimizerArguments args;
+    args.which = WhichStroke::skeleton;
+    args.s = shape;
+    Stroke *s = &shape->skeleton;
     double final_result = 1e8;
     auto variables = s->get_free_variables();
     assert(variables.size() == 7);
@@ -150,15 +173,15 @@ void optimize(Stroke *s) {
     variables = s->get_free_variables();
     assert(variables.size() == 9);
 
-    s->calculate_value_for(variables);
     if(debug_svgs) {
-        write_svg(*s, "initial.svg");
+        s->calculate_value_for(variables);
+        write_svg(*shape, "initial.svg");
     }
 
     lbfgs_parameter_t param;
     lbfgs_parameter_init(&param);
     int ret = lbfgs(
-        variables.size(), &variables[0], &final_result, evaluate_model, model_progress, s, &param);
+        variables.size(), &variables[0], &final_result, evaluate_model, model_progress, &args, &param);
     printf("Exit value: %d\n", ret);
     // insert final values back in the stroke here.
     s->calculate_value_for(variables);
@@ -174,7 +197,7 @@ public:
             if(args.size() != 1) {
                 return "Wrong number of arguments.";
             }
-            s.reset(new Stroke(args[0]));
+            s.reset(new Shape(args[0]));
             return 0.0;
         } else if(funname == "FixedConstraint") {
             if(!s) {
@@ -183,7 +206,8 @@ public:
             if(args.size() != 3) {
                 return "Wrong number of arguments.";
             }
-            auto r = s->add_constraint(std::make_unique<FixedConstraint>(args[0], Point(args[1], args[2])));
+            auto r = s->skeleton.add_constraint(
+                std::make_unique<FixedConstraint>(args[0], Point(args[1], args[2])));
             if(r) {
                 return *r;
             }
@@ -195,7 +219,8 @@ public:
             if(args.size() != 3) {
                 return "Wrong number of arguments.";
             }
-            auto r = s->add_constraint(std::make_unique<DirectionConstraint>(args[0], args[1], args[2]));
+            auto r = s->skeleton.add_constraint(
+                std::make_unique<DirectionConstraint>(args[0], args[1], args[2]));
             if(r) {
                 return *r;
             }
@@ -207,7 +232,8 @@ public:
             if(args.size() != 3) {
                 return "Wrong number of arguments.";
             }
-            auto r = s->add_constraint(std::make_unique<MirrorConstraint>(args[0], args[1], args[2]));
+            auto r = s->skeleton.add_constraint(
+                std::make_unique<MirrorConstraint>(args[0], args[1], args[2]));
             if(r) {
                 return *r;
             }
@@ -219,7 +245,8 @@ public:
             if(args.size() != 3) {
                 return "Wrong number of arguments.";
             }
-            auto r = s->add_constraint(std::make_unique<SmoothConstraint>(args[0], args[1], args[2]));
+            auto r = s->skeleton.add_constraint(
+                std::make_unique<SmoothConstraint>(args[0], args[1], args[2]));
             if(r) {
                 return *r;
             }
@@ -231,7 +258,7 @@ public:
             if(args.size() != 4) {
                 return "Wrong number of arguments.";
             }
-            auto r = s->add_constraint(
+            auto r = s->skeleton.add_constraint(
                 std::make_unique<AngleConstraint>(args[0], args[1], args[2], args[3]));
             if(r) {
                 return *r;
@@ -244,7 +271,7 @@ public:
             if(args.size() != 4) {
                 return "Wrong number of arguments.";
             }
-            auto r = s->add_constraint(
+            auto r = s->skeleton.add_constraint(
                 std::make_unique<SameOffsetConstraint>(args[0], args[1], args[2], args[3]));
             if(r) {
                 return *r;
@@ -256,20 +283,18 @@ public:
         return 0;
     }
 
-    bool has_stroke() {
-        return (bool)s;
-    }
+    bool has_shape() { return (bool)s; }
 
-    Stroke &get_stroke() {
+    Shape &get_shape() {
         assert(s);
         return *s.get();
     }
 
 private:
-    std::unique_ptr<Stroke> s;
+    std::unique_ptr<Shape> s;
 };
 
-std::variant<Stroke, std::string> calculate_sample_dynamically(const std::string &program) {
+std::variant<Shape, std::string> calculate_sample_dynamically(const std::string &program) {
     Bridge b;
     Lexer l(program);
     Parser p(l);
@@ -285,11 +310,11 @@ std::variant<Stroke, std::string> calculate_sample_dynamically(const std::string
         err += i.get_error();
         return err;
     }
-    if(!b.has_stroke()) {
+    if(!b.has_shape()) {
         return "Program did not define a bezier stroke.";
     }
-    optimize(&b.get_stroke());
-    return std::move(b.get_stroke());
+    optimize(&b.get_shape());
+    return std::move(b.get_shape());
 }
 
 #if defined(WASM)
@@ -309,7 +334,6 @@ int EMSCRIPTEN_KEEPALIVE wasm_entrypoint(char *buf) {
     strcpy(buf, result.c_str());
     return 0;
 }
-
 }
 
 int main(int, char **) {
@@ -341,8 +365,9 @@ int main(int argc, char **argv) {
     auto s = calculate_sample_dynamically(program);
     if(std::holds_alternative<std::string>(s)) {
         printf("%s\n", std::get<std::string>(s).c_str());
+    } else {
+        write_svg(std::get<Shape>(s), "output.svg");
     }
-    write_svg(std::get<Stroke>(s), "output.svg");
 
     printf("All done, bye-bye.\n");
     return 0;

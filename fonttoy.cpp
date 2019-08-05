@@ -112,7 +112,7 @@ Stroke::Stroke(const int num_beziers) : num_beziers(num_beziers) {
 std::optional<std::string> Stroke::add_constraint(std::unique_ptr<Constraint> c) {
     assert(!is_frozen);
     auto backup = coord_specifications;
-    for(auto specific: c->determines_points()) {
+    for(auto specific : c->determines_points()) {
         if(!coord_specifications[specific.index].try_union(specific.w)) {
             std::string err("Multiple specifications for point: ");
             err += std::to_string(specific.index);

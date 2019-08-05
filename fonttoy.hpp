@@ -37,7 +37,7 @@ public:
 
     void freeze();
 
-    const std::vector<Point>& get_points() const { return points; }
+    const std::vector<Point> &get_points() const { return points; }
 
 private:
     void update_model();
