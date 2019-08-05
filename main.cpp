@@ -131,7 +131,8 @@ void put_indexes_in(Stroke &s, SvgExporter &svg) {
 void build_svg(Shape &s, SvgExporter &svg) {
     put_beziers_in(s.skeleton, svg, true);
     put_indexes_in(s.skeleton, svg);
-    put_beziers_in(s.left, svg, true);
+    put_beziers_in(s.left, svg, false);
+    put_beziers_in(s.right, svg, false);
 }
 
 void write_svg(Shape &s, const char *fname) {
@@ -216,15 +217,15 @@ void optimize_skeleton(Shape *shape) {
     s->calculate_value_for(variables);
 }
 
-void optimize_side(Shape *shape) {
+void optimize_side(Shape *shape, const WhichStroke which) {
     OptimizerArguments args;
     Stroke *skel = &shape->skeleton;
-    args.which = WhichStroke::left;
+    args.which = which;
     double final_result = 1e8;
     const double r = 0.05;
     args.s = shape;
     auto skel_b = skel->build_beziers();
-    auto side = &shape->left;
+    auto side = which == WhichStroke::left ? &shape->left : &shape->right;
     const auto &skel_points = skel->get_points();
     const auto &side_points = side->get_points();
     assert(skel_points.size() == side_points.size());
@@ -239,9 +240,10 @@ void optimize_side(Shape *shape) {
             bezier_index = i / 3;
             eval_point = 0.0;
         }
+        int flipper = which == WhichStroke::left ? 1 : -1;
         Point skel_point = skel_b[bezier_index].evaluate(eval_point);
         Vector side_normal = skel_b[bezier_index].evaluate_left_normal(eval_point);
-        Point side_point = skel_point + r * side_normal;
+        Point side_point = skel_point + flipper * r * side_normal;
         auto rc = side->add_constraint(std::make_unique<FixedConstraint>(i, side_point));
         assert(!rc);
     }
@@ -270,8 +272,8 @@ void optimize_side(Shape *shape) {
         assert(!rc);
     }
 
-    shape->left.freeze();
-    auto variables = shape->left.get_free_variables();
+    side->freeze();
+    auto variables = side->get_free_variables();
 
     lbfgs_parameter_t param;
     lbfgs_parameter_init(&param);
@@ -282,13 +284,14 @@ void optimize_side(Shape *shape) {
                     model_progress,
                     &args,
                     &param);
-    shape->left.calculate_value_for(variables);
+    side->calculate_value_for(variables);
     printf("Side exit value: %d\n", ret);
 }
 
 void optimize(Shape *shape) {
     optimize_skeleton(shape);
-    optimize_side(shape);
+    optimize_side(shape, WhichStroke::left);
+    optimize_side(shape, WhichStroke::right);
 }
 
 class Bridge : public ExternalFuncall {
