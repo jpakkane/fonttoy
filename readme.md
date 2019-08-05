@@ -1,6 +1,13 @@
 # Font toy experiment
 
-This repository contains an impl
+This repository contains an experiment to create a font generator tool
+that is based on constraint optimization. The approach is similar to
+METAFONT.
+
+There is nothing specific that makes this approach specific to fonts.
+It could be used for arbitrary graphics generation, just like
+METAPOST. This is not a priority at the moment, but may be implemented
+in the future.
 
 ## Using it
 
