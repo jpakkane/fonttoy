@@ -163,6 +163,41 @@ void SvgExporter::draw_text(double x, double y, double size, const char *msg) {
     canvas->InsertEndChild(text);
 }
 
+void SvgExporter::draw_shape(const std::vector<Bezier> &left_beziers, const std::vector<Bezier> &right_beziers) {
+    std::string cmds;
+    cmds.reserve(2048);
+    const int bufsize = 1024;
+    char buf[bufsize];
+    snprintf(buf, bufsize, "M %f %f ", x_to_canvas_x(left_beziers[0].p1().x()), y_to_canvas_y(left_beziers[0].p1().y()));
+    cmds += buf;
+    for(const auto b: left_beziers) {
+        snprintf(buf, bufsize, "C %f %f %f %f %f %f ",
+                x_to_canvas_x(b.c1().x()), y_to_canvas_y(b.c1().y()),
+                x_to_canvas_x(b.c2().x()), y_to_canvas_y(b.c2().y()),
+                x_to_canvas_x(b.p2().x()), y_to_canvas_y(b.p2().y()));
+        cmds += buf;
+    }
+
+    snprintf(buf, bufsize, "L %f %f ", x_to_canvas_x(right_beziers.back().p2().x()), y_to_canvas_y(right_beziers.back().p2().y()));
+    cmds += buf;
+    for(int i=right_beziers.size()-1; i>=0; --i) {
+        auto &b = right_beziers[i];
+        snprintf(buf, bufsize, "C %f %f %f %f %f %f ",
+                x_to_canvas_x(b.c2().x()), y_to_canvas_y(b.c2().y()),
+                x_to_canvas_x(b.c1().x()), y_to_canvas_y(b.c1().y()),
+                x_to_canvas_x(b.p1().x()), y_to_canvas_y(b.p1().y()));
+        cmds += buf;
+    }
+    cmds += " Z";
+
+    auto shape = doc.NewElement("path");
+    shape->SetAttribute("d", cmds.c_str());
+    shape->SetAttribute("fill", "gray");
+    shape->SetAttribute("stroke", "none");
+    canvas->InsertEndChild(shape);
+}
+
+
 void SvgExporter::draw_horizontal_guide(double y, const char *txt) {
     draw_line(-20, y, 20, y, "black", 0.002, "1.0,1.0");
     draw_text(0.82, y + 0.002, 0.02, txt);

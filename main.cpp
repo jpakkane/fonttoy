@@ -116,6 +116,13 @@ void put_beziers_in(Stroke &s, SvgExporter &svg, bool draw_controls) {
     }
 }
 
+void draw_shape(Shape &s, SvgExporter &svg) {
+    auto left_beziers = s.left.build_beziers();
+    auto right_beziers = s.right.build_beziers();
+    svg.draw_shape(left_beziers, right_beziers);
+}
+
+
 void put_indexes_in(Stroke &s, SvgExporter &svg) {
     char buf[1024];
     auto &points = s.get_points();
@@ -129,10 +136,13 @@ void put_indexes_in(Stroke &s, SvgExporter &svg) {
 }
 
 void build_svg(Shape &s, SvgExporter &svg) {
+    draw_shape(s, svg);
     put_beziers_in(s.skeleton, svg, true);
     put_indexes_in(s.skeleton, svg);
+    /*
     put_beziers_in(s.left, svg, false);
     put_beziers_in(s.right, svg, false);
+    */
 }
 
 void write_svg(Shape &s, const char *fname) {
@@ -436,7 +446,7 @@ int EMSCRIPTEN_KEEPALIVE wasm_entrypoint(char *buf) {
         return 1;
     }
     SvgExporter svg;
-    build_svg(std::get<Stroke>(s), svg);
+    build_svg(std::get<Shape>(s), svg);
     std::string result = svg.to_string();
     strcpy(buf, result.c_str());
     return 0;

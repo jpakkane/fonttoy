@@ -49,6 +49,8 @@ public:
 
     void draw_cross(double x, double y);
 
+    void draw_shape(const std::vector<Bezier> &left_beziers, const std::vector<Bezier> &right_beziers);
+
 private:
     void setup_canvas();
     void draw_example();
