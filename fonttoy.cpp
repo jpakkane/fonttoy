@@ -31,7 +31,7 @@ Point Point::operator-(const Vector &v) const { return Point(x_ - v.x(), y_ - v.
 
 double Vector::length() const { return sqrt(x_ * x_ + y_ * y_); }
 
-double Vector::angle() const { return atan2(x_, y_); }
+double Vector::angle() const { return atan2(y_, x_); }
 
 double Vector::dot(const Vector &other) const { return x_ * other.x_ + y_ * other.y_; }
 
@@ -140,13 +140,13 @@ void Stroke::set_free_variables(const std::vector<double> &v) {
     for(const auto &c : constraints) {
         offset += c->get_free_variables_from(v, offset);
     }
+    update_model(); // HACK, see comment in update_model.
+    update_model();
 }
 
 double Stroke::calculate_value_for(const std::vector<double> &vars) {
     assert(is_frozen);
     set_free_variables(vars);
-    update_model(); // HACK, see comment in update_model.
-    update_model();
     return calculate_2nd_der() + calculate_limit_errors(vars);
 }
 
@@ -175,6 +175,17 @@ void Stroke::freeze() {
     }
 
     is_frozen = true;
+}
+
+Point Stroke::evaluate(const double t) const {
+    assert(t >= 0);
+    assert(t <= num_beziers);
+    if(t >= num_beziers) {
+        return points.back();
+    }
+    int bezier_index = (int)t;
+    double bezier_t = t - bezier_index;
+    return build_bezier(bezier_index).evaluate(bezier_t);
 }
 
 double Stroke::calculate_2nd_der() const {
@@ -223,10 +234,16 @@ double Stroke::calculate_limit_errors(const std::vector<double> &vars) const {
 std::vector<Bezier> Stroke::build_beziers() const {
     std::vector<Bezier> b;
     b.reserve(num_beziers);
-    size_t i = 3;
-    while(i < points.size()) {
-        b.emplace_back(points[i - 3], points[i - 2], points[i - 1], points[i]);
-        i += 3;
+    size_t i = 1;
+    while(i * 3 < points.size()) {
+        b.emplace_back(build_bezier(i));
+        ++i;
     }
     return b;
+}
+
+Bezier Stroke::build_bezier(int i) const {
+    assert(i > 0);
+    assert(3 * i < (int)points.size());
+    return Bezier(points[3 * i - 3], points[3 * i - 2], points[3 * i - 1], points[3 * i]);
 }

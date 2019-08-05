@@ -40,11 +40,30 @@ typedef double (*fptr)(const double *, const int);
 
 double maxd(const double d1, const double d2) { return d1 > d2 ? d1 : d2; }
 
-enum class WhichStroke : char {
-    skeleton,
-    left,
-    right
-};
+enum class WhichStroke : char { skeleton, left, right };
+
+double distance_error(Shape *s, const std::vector<double> &x, WhichStroke which) {
+    assert(which == WhichStroke::left || which == WhichStroke::right);
+    double total_error = 0;
+    auto skel_beziers = s->skeleton.build_beziers();
+    Stroke *side = which == WhichStroke::left ? &s->left : &s->right;
+    side->set_free_variables(x);
+    auto side_beziers = side->build_beziers();
+    assert(skel_beziers.size() == side_beziers.size());
+    for(int bez_index = 0; bez_index < (int)skel_beziers.size(); ++bez_index) {
+        for(int i = 1; i < 4; ++i) {
+            double t = i / 4.0;
+            double target_distance = 0.05; // FIXME, calculate from pen shape.
+            auto skel_point = skel_beziers[bez_index].evaluate(t);
+            auto side_point = side_beziers[bez_index].evaluate(t);
+            auto offset = skel_point - side_point;
+            auto distance = offset.length();
+            auto diff = distance - target_distance;
+            total_error += diff * diff;
+        }
+    }
+    return total_error;
+}
 
 struct OptimizerArguments {
     Shape *s;
@@ -52,13 +71,17 @@ struct OptimizerArguments {
 
     double calculate_value_for(const std::vector<double> &x) const {
         switch(which) {
-        case WhichStroke::skeleton : return s->skeleton.calculate_value_for(x);
-        default: assert(false);
+        case WhichStroke::skeleton:
+            return s->skeleton.calculate_value_for(x);
+        case WhichStroke::right:
+        case WhichStroke::left:
+            return distance_error(s, x, which);
+        default:
+            assert(false);
         }
-        return 0.0/0.0;
+        return 0.0 / 0.0;
     }
 };
-
 
 std::vector<double> compute_absolute_step(double rel_step, const std::vector<double> &x) {
     std::vector<double> h;
@@ -70,7 +93,7 @@ std::vector<double> compute_absolute_step(double rel_step, const std::vector<dou
     return h;
 }
 
-std::vector<double> estimate_derivative(OptimizerArguments *s,
+std::vector<double> estimate_derivative(OptimizerArguments *args,
                                         const std::vector<double> &x,
                                         double f0,
                                         const std::vector<double> &h) {
@@ -80,7 +103,7 @@ std::vector<double> estimate_derivative(OptimizerArguments *s,
         double old_v = x0[i];
         x0[i] += h[i];
         double dx = h[i];
-        double df = s->calculate_value_for(x0) - f0;
+        double df = args->calculate_value_for(x0) - f0;
         g[i] = df / dx;
         x0[i] = old_v;
     }
@@ -108,6 +131,7 @@ void put_indexes_in(Stroke &s, SvgExporter &svg) {
 void build_svg(Shape &s, SvgExporter &svg) {
     put_beziers_in(s.skeleton, svg, true);
     put_indexes_in(s.skeleton, svg);
+    put_beziers_in(s.left, svg, true);
 }
 
 void write_svg(Shape &s, const char *fname) {
@@ -161,7 +185,7 @@ int model_progress(void *instance,
     return 0;
 }
 
-void optimize(Shape *shape) {
+void optimize_skeleton(Shape *shape) {
     OptimizerArguments args;
     args.which = WhichStroke::skeleton;
     args.s = shape;
@@ -180,11 +204,91 @@ void optimize(Shape *shape) {
 
     lbfgs_parameter_t param;
     lbfgs_parameter_init(&param);
-    int ret = lbfgs(
-        variables.size(), &variables[0], &final_result, evaluate_model, model_progress, &args, &param);
-    printf("Exit value: %d\n", ret);
+    int ret = lbfgs(variables.size(),
+                    &variables[0],
+                    &final_result,
+                    evaluate_model,
+                    model_progress,
+                    &args,
+                    &param);
+    printf("Skeleton exit value: %d\n", ret);
     // insert final values back in the stroke here.
     s->calculate_value_for(variables);
+}
+
+void optimize_side(Shape *shape) {
+    OptimizerArguments args;
+    Stroke *skel = &shape->skeleton;
+    args.which = WhichStroke::left;
+    double final_result = 1e8;
+    const double r = 0.05;
+    args.s = shape;
+    auto skel_b = skel->build_beziers();
+    auto side = &shape->left;
+    const auto &skel_points = skel->get_points();
+    const auto &side_points = side->get_points();
+    assert(skel_points.size() == side_points.size());
+
+    // Each side point is at a fixed location w.r.t. to the skeleton point.
+    for(int i = 0; i < (int)skel_points.size(); i += 3) {
+        int bezier_index, eval_point;
+        if(i == (int)skel_points.size() - 1) {
+            bezier_index = (int)skel_b.size() - 1;
+            eval_point = 1.0;
+        } else {
+            bezier_index = i / 3;
+            eval_point = 0.0;
+        }
+        Point skel_point = skel_b[bezier_index].evaluate(eval_point);
+        Vector side_normal = skel_b[bezier_index].evaluate_left_normal(eval_point);
+        Point side_point = skel_point + r * side_normal;
+        auto rc = side->add_constraint(std::make_unique<FixedConstraint>(i, side_point));
+        assert(!rc);
+    }
+
+    // Each control point _after_ a fixed point defines the direction.
+    // Each control point _before_ a fixed point defines smoothness.
+    // The very last point is special in each case.
+    for(int i = 0; i < (int)skel_b.size(); ++i) {
+        auto direction = skel_b[i].evaluate_d1(0.0);
+        auto theta = direction.angle();
+        auto rc =
+            side->add_constraint(std::make_unique<DirectionConstraint>(i * 3, i * 3 + 1, theta));
+        assert(!rc);
+    }
+    auto backwards_angle = skel_b.back().evaluate_d1(1.0).angle() + M_PI;
+    auto rc = side->add_constraint(std::make_unique<DirectionConstraint>(
+        skel_points.size() - 1, skel_points.size() - 2, backwards_angle));
+    assert(!rc);
+
+    for(int i = 1; i < (int)skel_b.size(); ++i) {
+        int middle_curve_point = 3 * i;
+        int this_control_index = 3 * i - 1;
+        int other_control_index = 3 * i + 1;
+        auto rc = side->add_constraint(std::make_unique<SmoothConstraint>(
+            this_control_index, other_control_index, middle_curve_point));
+        assert(!rc);
+    }
+
+    shape->left.freeze();
+    auto variables = shape->left.get_free_variables();
+
+    lbfgs_parameter_t param;
+    lbfgs_parameter_init(&param);
+    int ret = lbfgs(variables.size(),
+                    &variables[0],
+                    &final_result,
+                    evaluate_model,
+                    model_progress,
+                    &args,
+                    &param);
+    shape->left.calculate_value_for(variables);
+    printf("Side exit value: %d\n", ret);
+}
+
+void optimize(Shape *shape) {
+    optimize_skeleton(shape);
+    optimize_side(shape);
 }
 
 class Bridge : public ExternalFuncall {

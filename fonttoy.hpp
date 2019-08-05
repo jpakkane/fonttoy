@@ -34,10 +34,12 @@ public:
 
     double calculate_value_for(const std::vector<double> &vars);
     std::vector<Bezier> build_beziers() const;
+    Bezier build_bezier(int i) const;
 
     void freeze();
 
     const std::vector<Point> &get_points() const { return points; }
+    Point evaluate(const double t) const;
 
 private:
     void update_model();
