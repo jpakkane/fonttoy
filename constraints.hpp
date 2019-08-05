@@ -17,8 +17,47 @@
   along with this program; if not, see <http://www.gnu.org/licenses/>.
 */
 
-#include <fonttoy.hpp>
+#include <maths.hpp>
 #include <vector>
+#include <optional>
+
+struct VariableLimits {
+    std::optional<double> min_value;
+    std::optional<double> max_value;
+};
+
+struct WhichCoordinate {
+    bool x = false;
+    bool y = false;
+
+    WhichCoordinate(bool x, bool y) : x(x), y(y) {}
+
+    bool defines_same(const WhichCoordinate &o) const {
+        return (x&&o.x) || (y&&o.y);
+    }
+
+    bool try_union(const WhichCoordinate &o) {
+        if(defines_same(o)) {
+            return false;
+        }
+        x |= o.x;
+        y |= o.y;
+        return true;
+    }
+
+    bool fully_constrained() const {
+        return x && y;
+    }
+};
+
+struct CoordinateDefinition {
+    int index;
+    WhichCoordinate w;
+
+    CoordinateDefinition(int index, bool defines_x, bool defines_y) : index(index), w(defines_x, defines_y) {
+    }
+};
+
 
 class Constraint {
 public:
