@@ -29,9 +29,10 @@
           var bufSize = 80000;
           var ptr  = allocate(bufSize, 'i8', ALLOC_NORMAL);
           _get_frame(frame_num, ptr);
-          var retStr = UTF8ToString(ptr);
+          var svg = UTF8ToString(ptr);
           _free(ptr);
-          document.getElementById("outputnode").innerHTML = retStr;
+          document.getElementById("outputnode").innerHTML = svg;
+          document.getElementById("debugtext").value = svg;
           document.getElementById("framelabel").textContent = "Frame " + range.value + "/" + range.max;
       }
     </script>
